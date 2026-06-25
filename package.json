@@ -1,0 +1,19 @@
+{
+  "name": "ttt",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@ttt/api",
+    "dev:api": "npm run dev --workspace=@ttt/api",
+    "start:api": "npm run start --workspace=@ttt/api",
+    "db:init": "bash scripts/create_db.sh",
+    "test": "npm run test --workspace=@ttt/api",
+    "test:api": "bash scripts/tests_api.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Table Tennis Tournament Singles Scheduler</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #eef2f8;
+            margin: 0;
+            padding: 24px 20px;
+            color: #1a2c3e;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+            padding: 24px 28px;
+            margin-bottom: 28px;
+        }
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            color: #0f2b3d;
+        }
+        .sub {
+            color: #2c5a74;
+            border-left: 4px solid #2c7da0;
+            padding-left: 16px;
+            margin: 0 0 24px 0;
+            font-weight: 400;
+        }
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 160px;
+        }
+        .field label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #1f6392;
+        }
+        .field input, .field select, input {
+            padding: 12px 14px;
+            font-size: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            background: #ffffff;
+            transition: 0.2s;
+        }
+        .field input:focus, .field select:focus {
+            outline: none;
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 3px rgba(44,125,160,0.2);
+        }
+        button {
+            background: #1e6f5c;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background: #0f5344;
+            transform: scale(0.97);
+        }
+        .error {
+            background: #ffe6e5;
+            border-left: 6px solid #d9534f;
+            padding: 16px 22px;
+            border-radius: 24px;
+            margin: 20px 0 0 0;
+            color: #ac2c28;
+            font-weight: 500;
+        }
+        .stats-grid, .equal-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 18px 24px;
+            flex: 1;
+            min-width: 170px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-number {
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: #1e6f5c;
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #4a627a;
+            margin-top: 10px;
+        }
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin: 20px 0 18px 0;
+            border-left: 5px solid #2c7da0;
+            padding-left: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        th {
+            background: #1e2f3c;
+            color: white;
+            padding: 12px 8px;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            /* background: white; */
+        }
+        tr:hover td {
+            background: #f1f5f9;
+        }
+        .groups-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            background: #f9fbfd;
+            padding: 20px;
+            border-radius: 28px;
+        }
+        .group-col {
+            flex: 1;
+            min-width: 130px;
+            background: white;
+            border-radius: 20px;
+            padding: 14px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .group-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #cbdbe0;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            color: #2c5a74;
+        }
+        hr {
+            margin: 28px 0;
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, #cbd5e1, transparent);
+        }
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6c86a3;
+            margin-top: 20px;
+        }
+        @media (max-width: 700px) {
+            .card { padding: 18px; }
+            .stat-number { font-size: 1.8rem; }
+            td, th { font-size: 0.8rem; }
+        }
+        /* Container with fixed height + scroll */
+        .table-container {
+            max-height: 800px;           /* ← Change this as needed */
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Table styling */
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* Sticky Header */
+        .table-container thead {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container th,
+        .table-container td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Alternating Row Colors */
+        .table-container tbody tr:nth-child(odd) {
+            background-color: #e9e9e9;
+        }
+
+        .table-container tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+
+        /* Hover Effect */
+        .table-container tbody tr:hover {
+            background-color: #b3b2fd;     /* Light blue hover */
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        /* Optional: Make header text bold */
+        .table-container th {
+            font-weight: 600;
+            color: white;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .slot-divider {
+          border-bottom: 2px solid #4a90e2 !important;   /* Strong blue line */
+          background-color: #f0f7ff !important;         /* Light background */
+        }
+
+        .slot-divider td {
+          border-bottom: 2px solid #4a90e2 !important;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Loading Modal -->
+    <div id="scheduleLoading" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 1000; text-align: center; min-width: 180px;">
+        <div style="margin-bottom: 12px;">
+            <span style="font-size: 24px; display: inline-block; animation: spin 1.5s linear infinite;">⟳</span>
+        </div>
+        <div id="loadingText" style="font-weight: 500; color: #333;">Scheduling...</div>
+    </div>
+
+    <!-- Optional backdrop -->
+    <div id="scheduleBackdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999;"></div>
+    <div class="card">
+        <h1>🏓 Singles Tournament Scheduler</h1>
+        <div class="section-title">Players</div>
+        <div style="overflow-x: auto">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th>#</th>
+                <th>Player</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td> <td> <input type="text" id="player1" value=""> </td>
+              <td>2</td> <td> <input type="text" id="player2" value=""> </td></tr>
+              <tr><td>3</td> <td> <input type="text" id="player3" value=""> </td>
+              <td>4</td> <td> <input type="text" id="player4" value=""> </td></tr>
+              <tr><td>5</td> <td> <input type="text" id="player5" value=""> </td>
+              <td>6</td> <td> <input type="text" id="player6" value=""> </td></tr>
+              <tr><td>7</td> <td> <input type="text" id="player7" value=""> </td>
+              <td>8</td> <td> <input type="text" id="player8" value=""> </td></tr>
+              <tr><td>9</td> <td> <input type="text" id="player9" value=""> </td>
+              <td>10</td> <td> <input type="text" id="player10" value=""> </td></tr>
+              <tr><td>11</td> <td> <input type="text" id="player11" value=""> </td>
+              <td>12</td> <td> <input type="text" id="player12" value=""> </td></tr>
+              <tr><td>13</td> <td> <input type="text" id="player13" value=""> </td>
+              <td>14</td> <td> <input type="text" id="player14" value=""> </td></tr>
+              <tr><td>15</td> <td> <input type="text" id="player15" value=""> </td>
+              <td>16</td> <td> <input type="text" id="player16" value=""> </td></tr>
+              <tr><td>17</td> <td> <input type="text" id="player17" value=""> </td>
+              <td>18</td> <td> <input type="text" id="player18" value=""> </td></tr>
+              <tr><td>19</td> <td> <input type="text" id="player19" value=""> </td>
+              <td>20</td> <td> <input type="text" id="player20" value=""> </td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub">Uneven groups allowed • Each player plays SAME total matches</div>
+        <div class="input-row">
+            <div class="field">
+                <label>🎯 Target total matches (approx)</label>
+                <input type="number" id="targetMatches" value="70" step="1" min="10">
+            </div>
+            <div class="field">
+                <label>👥 Total number of Hour Slots (h) [6-9]</label>
+                <input type="number" id="numSlots" value="6" min="5" max="12" step="1">
+            </div>
+            <div class="field">
+                <label>👥 Max number of matches in a slot per table (m) [4-12]</label>
+                <input type="number" id="maxMatchesPerSlot" value="6" min="4" max="12" step="1">
+            </div>
+            <div class="field" style="display: none;">
+                <label>👥 Total players (n) [4–30]</label>
+                <input type="number" id="totalPlayers" value="14" min="4" max="30" step="1">
+            </div>
+            <div class="field" style="display: none;">
+                <label>📂 Number of groups (g) [1–6]</label>
+                <select id="numGroups">
+                    <option value="1">1 group (full round robin)</option>
+                    <option value="2">2 groups</option>
+                    <option value="3" selected>3 groups</option>
+                    <option value="4">4 groups</option>
+                    <option value="5">5 groups</option>
+                    <option value="6">6 groups</option>
+                </select>
+            </div>
+            <div class="field">
+                <button id="scheduleBtn">⚡ SCHEDULE</button>
+            </div>
+        </div>
+        <div id="errorMsg" style="min-height: 65px;"></div>
+    </div>
+
+    <div id="resultsPanel" style="display: none;">
+        <!-- Section 1: match totals -->
+        <div class="card" id="totalsCard"></div>
+        <!-- Section 2: per-player stats (single total, ranges for intra/inter) -->
+        <div class="card" id="rangeStatsCard"></div>
+        <!-- Section 3: group composition (list per group) -->
+        <div class="card" id="groupsCompositionCard"></div>
+        <!-- Section 4: match list with slno -->
+        <div class="card" id="matchesCard"></div>
+        <!-- Section 5: Schedule of all matches -->
+        <div class="card" id="schedulesCard"></div>
+        <!-- Section 5: Player Distribution by slot -->
+        <div class="card" id="playerDistributionBySlot"></div>
+        <!-- Section 6: Player Distribution by Table -->
+        <div class="card" id="playerDistributionByTable"></div>
+    </div>
+    <footer>✅ Each player gets same total matches. </footer>
+</div>
+
+<script>
+    //
+    async function callSchedule(data) {
+        try {
+            const response = await fetch('/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Server error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return result;                    // You can also use the result if needed
+
+        } catch (error) {
+            console.error('Schedule request failed:', error);
+            alert('Error: ' + error.message);
+            throw error;   // re-throw if you want to handle it further
+        }
+    }
+    // Main function: Export HTML table to CSV
+    function exportTableToCSV_(tableId, filename = 'table-export.csv') {
+        const table = document.getElementById(tableId);
+        
+        if (!table) {
+            console.error(`Table with id "${tableId}" not found!`);
+            return;
+        }
+
+        let csvContent = '';
+
+        // Get all rows from the table
+        const rows = table.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('th, td');
+            const rowData = [];
+
+            cells.forEach(cell => {
+                let cellText = cell.textContent.trim();
+                
+                // Escape double quotes by doubling them
+                cellText = cellText.replace(/"/g, '""');
+                
+                // Wrap in quotes if it contains comma, quote, or newline
+                if (cellText.includes(',') || cellText.includes('"') || cellText.includes('\n')) {
+                    cellText = `"${cellText}"`;
+                }
+                
+                rowData.push(cellText);
+            });
+
+            csvContent += rowData.join(',') + '\n';
+        });
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log(`✅ Table exported as ${filename}`);
+    }
+
+    function exportTableToCSV(tableId, filename = 'schedule.csv') {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('th, td');
+            const rowData = [];
+
+            cells.forEach(cell => {
+                let text = cell.textContent.trim();
+                
+                // Handle rowspan by repeating the value in subsequent rows
+                const rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
+                if (rowspan > 1) {
+                    // For CSV we just repeat the value in the spanned rows (flat format)
+                    text = text.replace(/"/g, '""');
+                }
+
+                // Escape commas, quotes, newlines
+                if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+                    text = `"${text}"`;
+                }
+                
+                rowData.push(text);
+            });
+
+            csv.push(rowData.join(','));
+        });
+
+        const csvContent = csv.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+
+        console.log(`✅ Exported to ${filename}`);
+    }
+
+    (function() {
+        // Function 1: Set up auto-save on change for all player inputs
+        function setupPlayerInputsAutoSave() {
+            const players = {};
+
+            for (let i = 1; i <= 20; i++) {
+                const id = `player${i}`;
+                const input = document.getElementById(id);
+
+                if (input) {
+                    // Load initial value from localStorage (in case setup runs before load function)
+                    const savedValue = localStorage.getItem(id);
+                    if (savedValue !== null) {
+                        input.value = savedValue;
+                    }
+
+                    // Add change listener
+                    input.addEventListener('input', () => {  // 'input' for real-time, or 'change' if you prefer on blur
+                        localStorage.setItem(id, input.value);
+                    });
+                }
+            }
+
+            console.log('Player inputs auto-save setup complete (1-20)');
+        }
+
+        // Function 2: Load saved values from localStorage and populate inputs (call on window.onload or DOMContentLoaded)
+        function loadPlayerInputsFromStorage() {
+            for (let i = 1; i <= 20; i++) {
+                const id = `player${i}`;
+                const input = document.getElementById(id);
+                
+                if (input) {
+                    const savedValue = localStorage.getItem(id);
+                    if (savedValue !== null) {
+                        input.value = savedValue;
+                    }
+                }
+            }
+            
+            console.log('Player inputs loaded from localStorage');
+        }
+
+        // Helper: split n players into g groups (as equal as possible)
+        function getGroupSizes(n, g) {
+            let base = Math.floor(n / g);
+            let rem = n % g;
+            let sizes = new Array(g).fill(base);
+            for (let i = 0; i < rem; i++) sizes[i]++;
+            return sizes;
+        }
+
+        function shufflePlayers(array) {
+            // Create a shallow copy to keep the original array unchanged
+            const shuffled = [...array]; 
+  
+            // Iterate from the last element down to the second element
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                // Pick a random index from 0 to i
+                const j = Math.floor(Math.random() * (i + 1));
+    
+                // Swap elements using destructuring assignment
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Build group objects: names A1.., B1..
+        function buildGroups(n, g) {
+            const groupLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+            const sizes = getGroupSizes(n, g);
+            let groups = [];
+            let allPlayers = shufflePlayers(getTotalPlayers())
+            for (let i = 0; i < g; i++) {
+                let letter = groupLetters[i];
+                let players = allPlayers.splice(0, sizes[i])
+                for (let j = 1; j <= sizes[i]; j++) {
+                    // players.push(`${letter}${j}`);
+                }
+                groups.push({
+                    name: letter,
+                    size: sizes[i],
+                    players: players,
+                });
+            }
+            return groups;
+        }
+
+        // total intra-group matches
+        function computeIntraTotal(groups) {
+            let total = 0;
+            for (let gr of groups) total += (gr.size * (gr.size - 1)) / 2;
+            return total;
+        }
+
+        // --------------------------------------------------------------
+        // NEW: Find target matches per player (T) and k_i per group
+        // such that total matches ≈ targetTotal, all players get same T,
+        // k_i = T - (size_i - 1) must be >=0, <= n - size_i, and sum(n_i * k_i) even.
+        // We search T from reasonable low to high, pick closest to targetTotal.
+        // --------------------------------------------------------------
+        function findBestTAndKs(groups, targetTotal) {
+            const n = groups.reduce((s, g) => s + g.size, 0);
+            const groupSizes = groups.map(g => g.size);
+            // theoretical min T = max intra per player = max(size_i -1)
+            const minIntra = Math.max(...groupSizes.map(s => s - 1));
+            // theoretical max T = max possible total per player: (n-1) [full round robin]
+            const maxT = n - 1;
+            
+            let bestT = null;
+            let bestDiff = Infinity;
+            let bestKPerGroup = null;
+            let bestTotalMatches = 0;
+            
+            // search over possible T (matches per player)
+            for (let T = minIntra; T <= maxT; T++) {
+                let kValues = [];
+                let feasible = true;
+                let totalInterWeight = 0; // sum(n_i * k_i)
+                for (let i = 0; i < groupSizes.length; i++) {
+                    let intra_i = groupSizes[i] - 1;
+                    let k_i = T - intra_i;
+                    if (k_i < 0) { feasible = false; break; }
+                    // maximum opponents outside group
+                    let maxOpponents = n - groupSizes[i];
+                    if (k_i > maxOpponents) { feasible = false; break; }
+                    kValues.push(k_i);
+                    totalInterWeight += groupSizes[i] * k_i;
+                }
+                if (!feasible) continue;
+                // parity: totalInterWeight must be even
+                if (totalInterWeight % 2 !== 0) continue;
+                let totalMatches = computeIntraTotal(groups) + totalInterWeight / 2;
+                let diff = Math.abs(totalMatches - targetTotal);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestT = T;
+                    bestKPerGroup = kValues;
+                    bestTotalMatches = totalMatches;
+                }
+            }
+            if (bestT === null) throw new Error("No feasible T found. Try different number of groups or target.");
+            return { bestT, kPerGroup: bestKPerGroup, totalMatches: bestTotalMatches };
+        }
+
+        // generate inter matches with DIFFERENTIAL k per group (k_i)
+        // each player in group i must play exactly k_i matches vs players of other groups.
+        function generateInterMatchesDifferential(groups, kPerGroup) {
+            const nGroups = groups.length;
+            // flatten players with group index
+            let allPlayers = [];
+            let groupIdxMap = []; // for each player store group index
+            for (let gi = 0; gi < groups.length; gi++) {
+                for (let p of groups[gi].players) {
+                    allPlayers.push({ name: p, groupIdx: gi, groupName: groups[gi].name });
+                    groupIdxMap.push(gi);
+                }
+            }
+            const n = allPlayers.length;
+            // required inter matches per player (based on his group)
+            let required = new Array(n);
+            for (let i = 0; i < n; i++) {
+                let grpIdx = groupIdxMap[i];
+                required[i] = kPerGroup[grpIdx];
+            }
+            if (required.every(v => v === 0)) return [];
+            
+            // build candidate list: for each player, indices of players from different groups
+            let candidates = [];
+            for (let i = 0; i < n; i++) {
+                let others = [];
+                for (let j = 0; j < n; j++) {
+                    if (i !== j && groupIdxMap[j] !== groupIdxMap[i]) {
+                        others.push(j);
+                    }
+                }
+                candidates.push(others);
+            }
+            
+            let matchSet = new Set(); // store "min,max"
+            const shuffleArray = (arr) => {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const r = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[r]] = [arr[r], arr[i]];
+                }
+                return arr;
+            };
+            
+            let maxAttempts = 800;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                let curRequired = [...required];
+                matchSet.clear();
+                let success = true;
+                let order = shuffleArray([...Array(n).keys()]);
+                for (let idx of order) {
+                    if (curRequired[idx] === 0) continue;
+                    let need = curRequired[idx];
+                    let possible = candidates[idx].filter(opp => {
+                        if (curRequired[opp] === 0) return false;
+                        let a = Math.min(idx, opp);
+                        let b = Math.max(idx, opp);
+                        return !matchSet.has(`${a},${b}`);
+                    });
+                    if (possible.length < need) {
+                        success = false;
+                        break;
+                    }
+                    shuffleArray(possible);
+                    for (let t = 0; t < need; t++) {
+                        let opp = possible[t];
+                        let a = Math.min(idx, opp);
+                        let b = Math.max(idx, opp);
+                        matchSet.add(`${a},${b}`);
+                        curRequired[idx]--;
+                        curRequired[opp]--;
+                    }
+                }
+                if (success && curRequired.every(v => v === 0)) break;
+                if (attempt === maxAttempts - 1) {
+                    // deterministic fallback
+                    matchSet.clear();
+                    let curRequired = [...required];
+                    for (let i = 0; i < n; i++) {
+                        if (curRequired[i] === 0) continue;
+                        let candidatesSorted = [...candidates[i]];
+                        candidatesSorted.sort((a,b)=>a-b);
+                        for (let opp of candidatesSorted) {
+                            if (curRequired[i] === 0) break;
+                            if (curRequired[opp] === 0) continue;
+                            let a = Math.min(i, opp);
+                            let b = Math.max(i, opp);
+                            let key = `${a},${b}`;
+                            if (!matchSet.has(key)) {
+                                matchSet.add(key);
+                                curRequired[i]--;
+                                curRequired[opp]--;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            let interMatches = [];
+            for (let key of matchSet) {
+                let [i, j] = key.split(',').map(Number);
+                interMatches.push({
+                    p1: allPlayers[i].name,
+                    p2: allPlayers[j].name,
+                    typeLabel: `${allPlayers[i].groupName}-${allPlayers[j].groupName}`
+                });
+            }
+            return interMatches;
+        }
+        
+        // full match list: intra + inter (differential)
+        function generateAllMatches(groups, kPerGroup) {
+            let intraMatches = [];
+            for (let gr of groups) {
+                let plist = gr.players;
+                for (let i = 0; i < plist.length; i++) {
+                    for (let j = i+1; j < plist.length; j++) {
+                        intraMatches.push({
+                            p1: plist[i],
+                            p2: plist[j],
+                            typeLabel: `${gr.name}-${gr.name}`
+                        });
+                    }
+                }
+            }
+            let interMatches = generateInterMatchesDifferential(groups, kPerGroup);
+            return [...intraMatches, ...interMatches];
+        }
+        
+        // compute per-player stats (actual counts from matches) and also derive min/max ranges for intra/inter
+        function computePlayerStatsWithRanges(groups, matches) {
+            let intraCount = new Map();
+            let interCount = new Map();
+            for (let gr of groups) {
+                for (let p of gr.players) {
+                    intraCount.set(p, 0);
+                    interCount.set(p, 0);
+                }
+            }
+            for (let m of matches) {
+                let groupsInMatch = m.typeLabel.split('-');
+                let isIntra = (groupsInMatch[0] === groupsInMatch[1]);
+                if (isIntra) {
+                    intraCount.set(m.p1, intraCount.get(m.p1) + 1);
+                    intraCount.set(m.p2, intraCount.get(m.p2) + 1);
+                } else {
+                    interCount.set(m.p1, interCount.get(m.p1) + 1);
+                    interCount.set(m.p2, interCount.get(m.p2) + 1);
+                }
+            }
+            let totalPerPlayer = new Map();
+            for (let p of intraCount.keys()) {
+                totalPerPlayer.set(p, intraCount.get(p) + interCount.get(p));
+            }
+            // compute ranges (min, max) across players
+            let intraVals = [...intraCount.values()];
+            let interVals = [...interCount.values()];
+            let totalVals = [...totalPerPlayer.values()];
+            let totalMin = Math.min(...totalVals);
+            let totalMax = Math.max(...totalVals);
+            let intraMin = Math.min(...intraVals);
+            let intraMax = Math.max(...intraVals);
+            let interMin = Math.min(...interVals);
+            let interMax = Math.max(...interVals);
+            
+            // Because of differential inter, intra might differ per group, inter compensates => total same for all.
+            // But we return range only for display; requirement: "single value for total per player" if equal.
+            let totalEqual = (totalMin === totalMax);
+            let totalDisplay = totalEqual ? totalMin : `${totalMin}–${totalMax}`;
+            return {
+                totalPerPlayerDisplay: totalDisplay,
+                intraRange: intraMin === intraMax ? `${intraMin}` : `${intraMin}–${intraMax}`,
+                interRange: interMin === interMax ? `${interMin}` : `${interMin}–${interMax}`,
+                allTotalEqual: totalEqual
+            };
+        }
+        
+        // main scheduling entry point
+        function scheduleTournament(targetTotal, n, g) {
+            if (n < 2) throw new Error("At least 2 players required.");
+            if (g < 1 || g > 6) throw new Error("Groups must be between 1 and 6.");
+            if (g > n) throw new Error(`Groups (${g}) cannot exceed players (${n}).`);
+            
+            const groups = buildGroups(n, g);
+            const intraTotal = computeIntraTotal(groups);
+            if (targetTotal < intraTotal) {
+                throw new Error(`Target ${targetTotal} matches < intra-group matches (${intraTotal}). Increase target or reduce groups.`);
+            }
+            
+            const { bestT, kPerGroup, totalMatches } = findBestTAndKs(groups, targetTotal);
+            // generate matches using differential k per group
+            let matches = generateAllMatches(groups, kPerGroup);
+            
+            // optional verification: ensure each player gets exactly bestT total matches
+            let totalPerPlayerVerify = new Map();
+            for (let m of matches) {
+                totalPerPlayerVerify.set(m.p1, (totalPerPlayerVerify.get(m.p1) || 0) + 1);
+                totalPerPlayerVerify.set(m.p2, (totalPerPlayerVerify.get(m.p2) || 0) + 1);
+            }
+            let allEqual = true;
+            let firstVal = null;
+            for (let v of totalPerPlayerVerify.values()) {
+                if (firstVal === null) firstVal = v;
+                if (v !== firstVal) allEqual = false;
+            }
+            if (!allEqual) {
+                // if not equal due to randomness, retry once
+                matches = generateAllMatches(groups, kPerGroup);
+            }
+            
+            return { groups, intraTotal, interTotal: totalMatches - intraTotal, totalMatches, perPlayerTotal: bestT, kPerGroup, matches };
+        }
+        
+        // ---------- RENDER FUNCTIONS ----------
+        function renderTotals(intra, inter, total, rangeStats, totalMatchesPerPlayer) {
+            // totalMatchesPerPlayer is the uniform value from algorithm (bestT)
+            let totalValue = rangeStats.allTotalEqual ? rangeStats.totalPerPlayerDisplay : `${rangeStats.totalPerPlayerDisplay} (unequal!)`;
+            return `
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">🏆 TOTAL MATCHES</div></div>
+                    <div class="stat-card"><div class="stat-number">${totalValue}</div><div class="stat-label">🔄 Total matches per player (same for all)</div></div>
+                    <!--
+                    <div class="stat-card"><div class="stat-number">${intra}</div><div class="stat-label">🔄 INTRA‑GROUP MATCHES</div></div>
+                    <div class="stat-card"><div class="stat-number">${inter}</div><div class="stat-label">🌐 INTER‑GROUP MATCHES</div></div>
+                    -->
+                </div>
+            `;
+        }
+        
+        // Second section: total per player (single value ideally), intra range, inter range
+        function renderRangeStats(rangeStats, totalMatchesPerPlayer) {
+            // totalMatchesPerPlayer is the uniform value from algorithm (bestT)
+            let totalValue = rangeStats.allTotalEqual ? rangeStats.totalPerPlayerDisplay : `${rangeStats.totalPerPlayerDisplay} (unequal!)`;
+            return `
+                <div class="section-title">⚖️ Per‑player match statistics</div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number">${totalValue}</div><div class="stat-label">Total matches per player (same for all)</div></div>
+                    <div class="stat-card"><div class="stat-number">${rangeStats.intraRange}</div><div class="stat-label">Intra‑group matches per player (min–max)</div></div>
+                    <div class="stat-card"><div class="stat-number">${rangeStats.interRange}</div><div class="stat-label">Inter‑group matches per player (min–max)</div></div>
+                </div>
+                <div style="font-size:0.8rem; margin-top: 8px; color:#4a627a;">💡 Intra varies by group size; inter compensates to make total equal.</div>
+            `;
+        }
+        
+        function renderGroupComposition(groups) {
+            let colsHtml = '';
+            for (let gr of groups) {
+                let playersList = gr.players.map(p => `<div style="padding:5px 0;">${p}</div>`).join('');
+                colsHtml += `
+                    <div class="group-col">
+                        <div class="group-title">Group ${gr.name} (${gr.size})</div>
+                        ${playersList}
+                    </div>
+                `;
+            }
+            return `<div class="section-title">👥 Groups composition (Internal for creating fixtures, Has no meaning)</div><div class="groups-layout">${colsHtml}</div>`;
+        }
+        
+        function renderMatchList(matches) {
+            if (!matches.length) return `<div class="section-title">📋 Match list</div><div>No matches generated.</div>`;
+            let rows = '';
+            for (let i = 0; i < matches.length; i++) {
+                let m = matches[i];
+                rows += `<tr>
+                            <td style="text-align:center; font-weight:500;">${i+1}</td>
+                            <td>${m.p1}</td>
+                            <td>${m.p2}</td>
+                            <!-- <td>${m.typeLabel}</td> -->
+                         </tr>`;
+            }
+            return `
+                <div class="section-title">📋 All Fixtures (${matches.length} matches)</div>
+                <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
+                    <button style="padding: 8px 16px; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                            onclick="exportTableToCSV('matchesTable', 'players-fixtures.csv')"> 📥 Export to CSV </button>
+                </div>
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="matchesTable">
+                        <thead>
+                            <tr><th>#</th><th>Player 1</th><th>Player 2</th>
+                                <!-- <th>Match type (group relation)</th> -->
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+        // 
+        function generateScheduleTbody(data) {
+            let html = '';
+
+            data.forEach(slotData => {
+                const table1Matches = slotData.matches_in_table1 || [];
+                const table2Matches = slotData.matches_in_table2 || [];
+                const maxRows = Math.max(table1Matches.length, table2Matches.length);
+
+                for (let i = 0; i < maxRows; i++) {
+                    const isLastRowOfSlot = (i == maxRows - 1)
+                    html += `<tr ${isLastRowOfSlot ? 'class="slot-divider"' : ''}>`
+
+                    // Slot column with rowspan
+                    if (i === 0) {
+                        html += `
+                            <td rowspan="${maxRows}" 
+                                style="font-weight: bold; vertical-align: middle; text-align: center;">
+                                ${slotData.slot}
+                            </td>`;
+                    }
+
+                    // Table 1
+                    html += `<td>${table1Matches[i] || ''}</td>`;
+                    
+                    // Table 2
+                    html += `<td>${table2Matches[i] || ''}</td>`;
+
+                    html += '</tr>';
+                }
+            });
+
+            return html;
+        }
+      
+        function renderSchedulesList(matches) {
+            console.log("renderSchedulesList", matches)
+        
+            if (!Object.keys(matches).length) return `<div class="section-title">📋 Schedule of all matches</div><div>No matches generated.</div>`;
+            let rows = '', data = []
+            for (let i = 0; i < Object.keys(matches).length; i++) {
+                let d = { slot: i+1, matches_in_table1: [], matches_in_table2: [] }
+                let m = matches[i];
+                let t1 = "", t2 = ""
+                let slno = 1
+                let maxrows = Math.max(m[0].length, m[1].length)
+                for(let j=0; j < m[0].length; j++) {
+                  let t = slno + ". " + m[0][j]["player1"] + " vs " + m[0][j]["player2"] + "<br>"
+                  t1 += t
+                  d.matches_in_table1.push(t)
+                  slno += 1
+                }
+                slno = 1
+                for(let j=0; j < m[1].length; j++) {
+                  let t = slno + ". " + m[1][j]["player1"] + " vs " + m[1][j]["player2"] + "<br>"
+                  t2 += t
+                  d.matches_in_table2.push(t)
+                  slno += 1
+                }
+                data.push(d)
+                rows += `<tr>
+                            <td style="text-align:center; font-weight:500;">${i+1}</td>
+                            <td>${t1}</td>
+                            <td>${t2}</td>
+                         </tr>`;
+            }
+            let tbody_ = generateScheduleTbody(data)
+            return `
+                <div class="section-title">📋 Schedule of all matches</div>
+                <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
+                    <button style="padding: 8px 16px; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                            onclick="exportTableToCSV('schedulesTable', 'matches-schedule.csv')"> 📥 Export to CSV </button>
+                </div>
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="schedulesTable">
+                        <thead>
+                            <tr><th>Hour Slot</th><th>Matches in Table 1</th><th>Matches in Table 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tbody_}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderDistributionBySlot(distribution) {
+        
+            if (!Object.keys(distribution).length) return `<div class="section-title">📋 Player Distribution by Hour Slot</div><div>No distribution generated.</div>`;
+            let rows = '';
+            let players = Object.keys(distribution)
+            let thead = ""
+            for (const p of players) {
+                if(thead.length == 0) {
+                  thead = `<tr>
+                             <th> Player </th>`
+                  for(let i=1; i <= distribution[p].length; i++) {
+                      thead += `<th> Slot ${i}</th>`
+                  }
+                  thead += "</tr>"
+                }
+                rows += `<tr>
+                            <td>${p}</td>`
+                for(let i=0; i < distribution[p].length; i++) {
+                  rows += `<td> ${distribution[p][i]} </td>`
+                }
+                rows += "</tr>"
+            }
+            return `
+                <div class="section-title">📋 Player Distribution by Hour Slot</div>
+                <div style="display: flex; justify-content: flex-end; margin: 10px 0;">
+                    <button style="padding: 8px 16px; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                            onclick="exportTableToCSV('schedulesTable', 'matches-schedule.csv')"> 📥 Export to CSV </button>
+                </div>
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="distributionBySlot">
+                        ${thead}
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function displayFullResults(result) {
+            const groups = result.groups;
+            const matches = result.matches;
+            const statsWithRanges = computePlayerStatsWithRanges(groups, matches);
+            // also show the expected total per player from algorithm (bestT)
+            document.getElementById('totalsCard').innerHTML = renderTotals(result.intraTotal, result.interTotal, result.totalMatches, statsWithRanges, result.perPlayerTotal);
+            // document.getElementById('rangeStatsCard').innerHTML = renderRangeStats(statsWithRanges, result.perPlayerTotal);
+            document.getElementById('groupsCompositionCard').innerHTML = renderGroupComposition(result.groups);
+            document.getElementById('matchesCard').innerHTML = renderMatchList(result.matches);
+        }
+
+        function getTotalPlayers() {
+          let allPlayers = []
+          for(i=1; i< 21; i++) {
+            let p = document.getElementById(`player${i}`).value
+            if(p.length) {
+              allPlayers.push(p)
+            }
+          }
+
+          return allPlayers
+        }
+
+        function onSchedule() {
+            const loadingModal = document.getElementById('scheduleLoading');
+            const backdrop = document.getElementById('scheduleBackdrop');
+            const resultsPanel = document.getElementById('resultsPanel');
+            resultsPanel.style.display = 'none';
+
+            loadingModal.style.display = "block"
+            backdrop.style.display = "block"
+            document.getElementById("loadingText").textContent = "Scheduling...."
+
+            setTimeout(() => {
+
+              loadingModal.style.display = "none"
+              backdrop.style.display = "none"
+              onScheduleReal()
+            }, 3000)
+        }
+        // ---- EVENT HANDLER ----
+        function onScheduleReal() {
+            const errorDiv = document.getElementById('errorMsg');
+            const resultsPanel = document.getElementById('resultsPanel');
+            resultsPanel.style.display = 'none';
+            errorDiv.innerHTML = '';
+
+            let target = parseInt(document.getElementById('targetMatches').value, 10);
+            let allPlayers = getTotalPlayers()
+            let n = allPlayers.length // parseInt(document.getElementById('totalPlayers').value, 10);
+            let g = parseInt(document.getElementById('numGroups').value, 10);
+
+            if (isNaN(target) || target < 1) target = 80;
+            if (isNaN(n)) n = 14;
+            if (isNaN(g)) g = 3;
+            if (n < 2) n = 2;
+            if (n > 30) n = 30;
+            if (g < 1) g = 1;
+            if (g > 6) g = 6;
+
+            try {
+                const result = scheduleTournament(target, n, g);
+                displayFullResults(result);
+                resultsPanel.style.display = 'block';
+                // Call Schedule
+                let numSlots = parseInt(document.getElementById("numSlots").value, 10)
+                let maxMatchesPerSlot = parseInt(document.getElementById("maxMatchesPerSlot").value, 10)
+                let totalPlayers = getTotalPlayers()
+                callSchedule({numSlots: numSlots, maxMatchesPerSlot: maxMatchesPerSlot, numTables: 2, totalPlayers: totalPlayers, matches: result.matches})
+                .then(resp => {
+                    console.log("Success", resp)
+                    document.getElementById('schedulesCard').innerHTML = renderSchedulesList(resp.matches);
+                    document.getElementById('playerDistributionBySlot').innerHTML = renderDistributionBySlot(resp.player_distribution_by_hour);
+                })
+                .catch(err => console.log("Error", err))
+            } catch (err) {
+                resultsPanel.style.display = 'none';
+                errorDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+            }
+
+        }
+        
+        const btn = document.getElementById('scheduleBtn');
+        btn.addEventListener('click', onSchedule);
+        // No auto-run; user clicks schedule to see output.
+        loadPlayerInputsFromStorage()
+        setupPlayerInputsAutoSave()
+    })();
+</script>
+</body>
+</html>

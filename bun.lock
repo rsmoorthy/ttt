@@ -1,0 +1,14 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "dependencies": {
+        "pi-mimo-provider": "^1.0.0",
+      },
+    },
+  },
+  "packages": {
+    "pi-mimo-provider": ["pi-mimo-provider@1.0.0", "", { "peerDependencies": { "@mariozechner/pi-coding-agent": ">=0.52.0" }, "optionalPeers": ["@mariozechner/pi-coding-agent"] }, "sha512-I3AossyjtxfT3kV1/6fQua0vtiebnq+ulJnFG97sG26uKzVLrTFvz41c70wNWk2WBOsZNT6Rgr1Ioq+NmoWVvg=="],
+  }
+}
