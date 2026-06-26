@@ -118,7 +118,7 @@ CREATE TABLE fixtures (
   slno         INTEGER NOT NULL,
   player1      TEXT    NOT NULL,
   player2      TEXT    NOT NULL,
-  table_num    INTEGER,
+  tbl    INTEGER,
   hour_slot    INTEGER,
   game1        TEXT    DEFAULT '',
   game2        TEXT    DEFAULT '',
@@ -132,7 +132,7 @@ CREATE TABLE fixtures (
 );
 
 CREATE INDEX idx_fixtures_tournament_stage ON fixtures(tournament, stage);
-CREATE INDEX idx_fixtures_schedule ON fixtures(tournament, stage, hour_slot, table_num);
+CREATE INDEX idx_fixtures_schedule ON fixtures(tournament, stage, hour_slot, tbl);
 SQL
 
 echo "Schema applied successfully."
@@ -141,3 +141,4 @@ echo "Schema applied successfully."
 sqlite3 "${DB_PATH}" "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
 
 echo "Done."
+

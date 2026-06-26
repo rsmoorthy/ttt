@@ -99,34 +99,9 @@ to the registration page for that specific tournament selected.
 * To create fixtures, the UI screen should show:
   - the list of players (read-only)
   - Approx total matches
-  - Number of groups
   - A button with "Create Fixtures"
-* When "Create Fixtures" button is clicked, the front-end will pass the info to backend. The backend
-  will call an external service (POST http://localhost:8383/fixtures) with the same data received.
-* The external service will post the json as follows:
-```json
-{
-  "approx_total_matches": 8,
-  "number_of_groups": 2,
-  "scheme": "<stage slug>",
-  "players": [ "A1", "A2", "B1", "B2" ]
-}
-```
-* The external service will return a json as follows:
-
-```json
-{
- "total_matches": 6,
- "matches_per_player": 2,
- "groups": {
-    "A": [ "A1", "A2"],
-    "B": [ "B1", "B2"],
-  },
-  "matches": [
-    {  "slno": 1, "player1": "A1", "player2": "A2", }
-  ]
-}
-```
+* When "Create Fixtures" button is clicked, the front-end will pass the info to backend. ~The backend~
+  ~will call an external service (POST http://localhost:8383/fixtures) with the same data received.~
 
 * The groups and matches (fixtures) information should be saved in the DB (table: fixtures)
 * Important: The list of players will come from the registered players list (table: registration), by default
@@ -148,14 +123,16 @@ for this and integrate the code from temp/fixtures.
 * After selecting a tournament / stage (that tab), if there are no matches (fixtures) created earlier, then it will shown an error and asking
   the user to Fixtures first.
 
-* If the matches (fixtures) are already created, then the UI should ask:
+* If the matches (fixtures) are already created, then the UI should ask (for admin+ roles):
   - list of matches created (read-only)
   - number of hour slots (numSlots)
   - number of tables (numTables)
   - max number of matches in a table / hour slot (maxMatchesPerSlot)
   - a button with "Schedule"
-* When "Schedule" is clicked, the front-end will pass the info to backend. The backend will call an external
-  service (POST http://localhost:8383/schedule) with the same data received. The request json will be as follows:
+* When "Schedule" is clicked, the front-end will pass the info to backend. Only for stage_type is `league`, the backend will 
+  call an external service (POST http://localhost:8383/schedule) with the data received and additional data needed. 
+
+  The request json to the external service will be as follows:
   ```json
   {
     "numSlots": 7,
@@ -167,26 +144,29 @@ for this and integrate the code from temp/fixtures.
       {  "player1": "A1", "player2": "A2", }
     ]
   }
+  ```
+
 * The external service response json will be as follows:
   ```json
   {
     "status": "ok|error",
     "error": "only if error",
-    "matches": {
-      "1": {  // This is hour slot
-        1: [ // This is table number
-          {  "player1": "A1", "player2": "A2" },
-          {  "player1": "B1", "player2": "B2" },
-      ]
-    }
+    "matches": [
+      {  "player1": "A1", "player2": "A2", "hour_slot" : 1, "tbl": 1}
+    ]
   }
   ```
 
-* The information received for each match should be saved in the DB (the `hour_slot` and `table`), against the tournament
+* The information received for each match should be saved in the DB (the `hour_slot` and `tbl`), against the tournament
   and stage. (table: fixtures)
-* It is possible that Re-running "Schedule" can be done. If that happens, overwrite all existing values of hour_slot and table
+* It is possible that Re-running "Schedule" can be done. If that happens, overwrite all existing values of hour_slot and tbl
   in the DB for that stage(table: fixtures). Provide a big fat warning that says "this action overwrites the earlier schedule and 
   do you want to continue"
+
+* View: If the scheduling is not done yet, the view should simply display a table with the fixtures of matches (slno, player1, player2, hour_slot, tbl) with the last 2 columns being empty.
+* View: If the scheduling has been done (tbl, hour_slot is non-empty even for one match), then the first column is the hour_slot - which has row-span=X where X is the number of matches in that hour_slot. The second column is the "Matches in Table 1" with multiple
+rows for each match. The third column is "Matches in Table 2" (and so on). Second, third columns will have the text as "slno, player1, player2".
+* View: The above view should be displayed for "guest+". Only "admin+" will be able to create Schedule.
 
 ### Scores
 
@@ -198,7 +178,7 @@ for this and integrate the code from temp/fixtures.
 * At the top of the table, there should be filterable options for:
   - Player names (drop down). If specified, the following table will only contain if the player is present as "player1" or "player2"
   - Hour slot (drop down). If specified, the following table will only contain if the "hour_slot" matches this value
-  - Table name (drop down). If specified, the following table will only contain if the "table" matches the value
+  - Table name (drop down). If specified, the following table will only contain if the "tbl" matches the value
   - The user should be able to specify multiple filters and it should be honoured
   - Each filter can also be reset, if the drop down value "-select-" (empty value) is chosen
 * The following table should be sorted first by hour slot, then by table name
@@ -219,6 +199,9 @@ for this and integrate the code from temp/fixtures.
     - For the scorer role, the backend also will not allow any score updates, if the "Match Over" has been clicked
     - Admin role should still be able to make changes to scores / walkover_win, even if Match over has been clicked
     - "Match over" cannot be clicked, if the scores are empty and walkover_win is empty.
+    - "Match over" cannot be clicked, if walkover_win is empty and game1 and game2 are not updated with valid values.
+    - "Match over" cannot be clicked, if each player has won equal number of games. A win means: player1 wins if n1 > n2 and 
+      player2 wins if n2 > n1.
 
 * Any valid information updated on the Table should be updated in real-time to the backend
 * A refresh icon in the screen (top of the table) will refresh the contents from the backend
@@ -319,6 +302,7 @@ created.
   - slug
   - description
   - is_completed (true|false)
+  - stage_type (league|superleague|playoff)
 
 * stages_players
   - tournament # same as tournament -> slug
@@ -331,7 +315,7 @@ created.
   - slno
   - player1
   - player2
-  - table
+  - tbl
   - hour_slot
   - game1
   - game2

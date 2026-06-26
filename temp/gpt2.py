@@ -135,7 +135,7 @@ def schedule(data, fmt="json"):
     if "matches" in data:
         matches = []
         for m in data["matches"]:
-            matches.append({"players": (m["p1"], m["p2"]), "group": ""})
+            matches.append({"players": (m["player1"], m["player2"]), "group": ""})
     else:
         ##
         for p1, p2 in combinations(A_PLAYERS, 2):
@@ -405,15 +405,19 @@ def schedule(data, fmt="json"):
                 row.append(v)
             response["player_distribution_by_table"][player] = row
 
-        matches = {}
+        matches = []
         for s in range(NUM_SLOTS):
-            matches[s] = {}
             for table in range(NUM_TABLES):
                 for t, p1, p2, grp in sorted(schedule[s]):
-                    if t not in matches[s]:
-                        matches[s][t] = []
                     if t == table:
-                        matches[s][t].append({"player1": p1, "player2": p2})
+                        matches.append(
+                            {
+                                "player1": p1,
+                                "player2": p2,
+                                "hour_slot": s + 1,
+                                "tbl": t + 1,
+                            }
+                        )
         response["matches"] = matches  # type: ignore
 
         return response

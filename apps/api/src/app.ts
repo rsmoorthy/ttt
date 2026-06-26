@@ -19,7 +19,7 @@ export function createApp() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: env.nodeEnv === "production",
+        secure: env.sessionCookieSecure,
         sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000,
       },

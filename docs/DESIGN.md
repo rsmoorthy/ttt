@@ -59,7 +59,7 @@ ttt/
 │   │   │   ├── index.ts              # Entry: start HTTP server
 │   │   │   ├── app.ts                # Express app wiring
 │   │   │   ├── config/
-│   │   │   │   └── env.ts            # Typed env (PORT, DB_PATH, FIXTURE_SERVICE_URL)
+│   │   │   │   └── env.ts            # Typed env (PORT, DB_PATH, SCHEDULE_SERVICE_URL)
 │   │   │   ├── db/
 │   │   │   │   ├── connection.ts     # better-sqlite3 singleton
 │   │   │   │   └── repositories/     # One module per table / aggregate
@@ -79,7 +79,7 @@ ttt/
 │   │   │   │   ├── leaderboard.ts
 │   │   │   │   └── move-players.ts
 │   │   │   ├── services/
-│   │   │   │   ├── fixture-client.ts # POST localhost:8383/fixtures
+│   │   │   │   ├── fixture-client.ts
 │   │   │   │   ├── schedule-client.ts
 │   │   │   │   └── leaderboard.ts    # Wins, SWLR, PWLR, NRR
 │   │   │   ├── validators/           # Request/body validation (e.g. zod)
@@ -166,7 +166,7 @@ ttt/
 | `PORT` | api | `3000` |
 | `DB_PATH` | api | `./data/ttt.db` |
 | `SESSION_SECRET` | api | `(random string)` |
-| `FIXTURE_SERVICE_URL` | api | `http://localhost:8383` |
+| `SCHEDULE_SERVICE_URL` | api | `http://localhost:8383` |
 | `VITE_API_BASE_URL` | web | `http://localhost:3000/api` |
 
 ### Migration from current repo
@@ -210,7 +210,6 @@ data/*.db
 - **Booleans:** Stored as `INTEGER` with `CHECK (col IN (0, 1))`. Application treats `1` as true.
 - **Empty strings:** Optional text fields (`description`, game scores, `walkover_win`) default to `''` when unset.
 - **Player names:** Referenced by plain text; uniqueness within a tournament is an operational guarantee (admin), not a DB constraint.
-- **Reserved words:** PRD field `table` is stored as column `table_num` in SQLite.
 - **Ordering:** `registration` and `stages_players` use `sort_order` (0-based) so player list order is preserved for fixture generation.
 - **Match completion:** PRD “Match Over” maps to `fixtures.is_completed`.
 
@@ -280,7 +279,7 @@ erDiagram
         integer slno
         text player1
         text player2
-        integer table_num
+        integer tbl
         integer hour_slot
         text game1
         text game2
@@ -357,8 +356,6 @@ Players moved into a stage (replaces entire list for that stage on each “Move 
 
 ### `fixture_groups`
 
-Optional group assignments returned by the external fixture service. Cleared and repopulated when fixtures are regenerated for a stage.
-
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
 | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` | |
@@ -382,7 +379,7 @@ Matches for a tournament stage: fixture data, schedule slots, and scores in one 
 | `slno` | `INTEGER` | `NOT NULL` | Serial number within stage |
 | `player1` | `TEXT` | `NOT NULL` | |
 | `player2` | `TEXT` | `NOT NULL` | |
-| `table_num` | `INTEGER` | nullable | PRD `table`; set by scheduling |
+| `tbl` | `INTEGER` | nullable | PRD `tbl`; set by scheduling |
 | `hour_slot` | `INTEGER` | nullable | Set by scheduling |
 | `game1` … `game5` | `TEXT` | `DEFAULT ''` | Score strings `n1-n2` or empty |
 | `walkover_win` | `TEXT` | `DEFAULT ''` | Winner player name or empty |
@@ -401,7 +398,7 @@ Matches for a tournament stage: fixture data, schedule slots, and scores in one 
 | `idx_stages_players_tournament_stage` | `stages_players(tournament, stage)` | Resolve stage player list |
 | `idx_fixture_groups_tournament_stage` | `fixture_groups(tournament, stage)` | Load groups |
 | `idx_fixtures_tournament_stage` | `fixtures(tournament, stage)` | List matches |
-| `idx_fixtures_schedule` | `fixtures(tournament, stage, hour_slot, table_num)` | Scores screen sort/filter |
+| `idx_fixtures_schedule` | `fixtures(tournament, stage, hour_slot, tbl)` | Scores screen sort/filter |
 
 ## Lifecycle notes (application behavior)
 
@@ -409,7 +406,7 @@ Matches for a tournament stage: fixture data, schedule slots, and scores in one 
 |--------|-----------|
 | Save registration | Delete all `registration` rows for tournament; insert new rows with `sort_order` |
 | Create fixtures (re-run) | Delete all `fixtures` and `fixture_groups` for `(tournament, stage)`; insert new rows |
-| Schedule (re-run) | Update `table_num` and `hour_slot` on existing `fixtures` for `(tournament, stage)` |
+| Schedule (re-run) | Update `tbl` and `hour_slot` on existing `fixtures` for `(tournament, stage)` |
 | Move to stage | Delete all `stages_players` for target `(tournament, stage)`; insert selected players |
 | Match over | Set `fixtures.is_completed = 1` |
 

@@ -14,7 +14,7 @@ This document defines **how the system is structured**, **how components interac
 | TypeScript everywhere | Shared types in `packages/shared`; strict TS in `apps/api` and `apps/web` |
 | Mobile-friendly SPA | React + responsive layout; no native apps |
 | Real-world tournament ops | Admin override paths; destructive actions require confirmation |
-| Testable business logic | Leaderboard and score validation live in the backend; external fixture/schedule services are thin HTTP clients |
+| Testable business logic | Leaderboard and score validation live in the backend; external schedule services are thin HTTP clients |
 
 **Out of scope for v1:** multi-role per user, CSV import UI, user-management screens, horizontal scaling, managed cloud services.
 
@@ -22,7 +22,7 @@ This document defines **how the system is structured**, **how components interac
 
 ## System context
 
-The app is the central hub for tournament data. Fixture generation and match scheduling are delegated to an **external HTTP service** (already running at `http://localhost:8383` per the PRD). The Node API proxies requests to that service and persists the results in SQLite.
+The app is the central hub for tournament data. Match scheduling are delegated to an **external HTTP service** (already running at `http://localhost:8383` per the PRD). The Node API proxies requests to that service and persists the results in SQLite.
 
 ```mermaid
 flowchart LR
@@ -34,27 +34,27 @@ flowchart LR
     nginx[nginx]
     node[Node.js API + static files]
     sqlite[(SQLite ttt.db)]
-    fixtureSvc[Fixture/Schedule service :8383]
+    scheduleSvc[Schedule service :8383]
   end
 
   SPA -->|HTTPS /api/*| nginx
   SPA -->|HTTPS static assets| nginx
   nginx --> node
   node --> sqlite
-  node -->|POST /fixtures, /schedule| fixtureSvc
+  node -->|POST /schedule| scheduleSvc
 ```
 
 ---
 
 ## Architectural style
 
-**Modular monolith** — one deployable Node process, clear internal layers, no microservices beyond the existing fixture/schedule helper.
+**Modular monolith** — one deployable Node process, clear internal layers, no microservices beyond the existing schedule helper.
 
 | Layer | Location | Responsibility |
 |-------|----------|----------------|
 | Presentation | `apps/web` | React SPA, routing, forms, role-based UI, client-side validation |
 | API | `apps/api/routes` | HTTP endpoints, auth, request validation, status codes |
-| Application | `apps/api/services` | Orchestration: fixture client, schedule client, leaderboard engine |
+| Application | `apps/api/services` | Orchestration: schedule client, leaderboard engine |
 | Data access | `apps/api/db/repositories` | SQL via `better-sqlite3`; no ORM in v1 |
 | Shared kernel | `packages/shared` | DTO types, role constants, score validation rules |
 
@@ -65,7 +65,7 @@ Browser (React)
 Express routes  →  middleware (auth, roles, errors)
     │
     ▼
-Services        →  external HTTP (fixtures, schedule)
+Services        →  external HTTP (schedule)
     │              →  pure functions (leaderboard, score parse)
     ▼
 Repositories    →  better-sqlite3  →  data/ttt.db
@@ -113,7 +113,7 @@ Two processes during development (via root `pnpm dev`):
    - `/api/*` — JSON REST handlers
    - `/*` — static files from `apps/web/dist` (SPA fallback to `index.html`)
 
-No separate CDN or app server is required. The fixture/schedule service on port `8383` runs independently (same host or reachable URL via `FIXTURE_SERVICE_URL`).
+No separate CDN or app server is required. The schedule service on port `8383` runs independently (same host or reachable URL via `SCHEDULE_SERVICE_URL`).
 
 ---
 
@@ -161,7 +161,7 @@ server {
 | `PORT` | `3000` | Listen address for nginx upstream |
 | `DB_PATH` | `/var/lib/ttt/ttt.db` | Absolute path recommended in prod |
 | `SESSION_SECRET` | random 32+ bytes | Session cookie signing |
-| `FIXTURE_SERVICE_URL` | `http://127.0.0.1:8383` | External fixture/schedule service |
+| `SCHEDULE_SERVICE_URL` | `http://127.0.0.1:8383` | External schedule service |
 | `TRUST_PROXY` | `1` | Honor `X-Forwarded-*` from nginx |
 
 **Backups:** Copy `ttt.db` (and `-wal`/`-shm` if present) while the app is running (SQLite WAL allows hot copy) or during a brief maintenance window.
@@ -224,7 +224,7 @@ REST-style JSON under `/api`. All tournament-scoped routes use `tournament` slug
 | PUT | `/api/tournaments/:slug/registration` | admin+ | Replace player list (30 rows) |
 | GET/POST/PUT/DELETE | `/api/tournaments/:slug/stages` | admin+ | Stage CRUD |
 | GET | `/api/tournaments/:slug/stages/:stage/players` | admin+ | Resolved player source (registration vs moved) |
-| POST | `/api/tournaments/:slug/stages/:stage/fixtures` | admin+ | Call external service; replace fixtures |
+| POST | `/api/tournaments/:slug/stages/:stage/fixtures` | admin+ | as per CR1, code integrated into service |
 | POST | `/api/tournaments/:slug/stages/:stage/schedule` | admin+ | Call external service; update slots |
 | GET/PATCH | `/api/tournaments/:slug/stages/:stage/matches` | guest+ / scorer+ | List/filter matches; patch scores |
 | POST | `/api/tournaments/:slug/stages/:stage/matches/:slno/complete` | scorer+ | Match over |
@@ -244,12 +244,9 @@ sequenceDiagram
   participant UI as React Fixtures page
   participant API as Express fixtures route
   participant DB as SQLite
-  participant Ext as Fixture service :8383
 
   UI->>API: POST fixtures { approx_total_matches, number_of_groups }
   API->>DB: Load players (stages_players or registration, ordered)
-  API->>Ext: POST /fixtures { players, scheme, ... }
-  Ext-->>API: { groups, matches }
   API->>DB: DELETE fixtures + fixture_groups for stage
   API->>DB: INSERT groups and matches
   API-->>UI: 200 { total_matches, ... }
@@ -259,11 +256,11 @@ Re-run shows a confirmation dialog in the UI; API performs full replace for that
 
 ### Scheduling
 
-Same pattern: UI → API → external `POST /schedule` → API updates `table_num` and `hour_slot` on existing `fixtures` rows (overwrite).
+Same pattern: UI → API → external `POST /schedule` → API updates `tbl` and `hour_slot` on existing `fixtures` rows (overwrite).
 
 ### Scoring
 
-- **List:** GET matches sorted by `hour_slot`, then `table_num`; filters applied server-side or via query params
+- **List:** GET matches sorted by `hour_slot`, then `tbl`; filters applied server-side or via query params
 - **Update:** PATCH single match fields (`game1`…`game5`, `walkover_win`); validate with shared score rules
 - **Mutual exclusion:** walkover vs game scores enforced in API and UI
 - **Match over:** POST sets `is_completed = 1`; scorer locked out afterward
@@ -323,7 +320,7 @@ Tournament-first navigation: most modules show a **tournament picker**, then sta
 |-------|----------|
 | API validators (Zod) | `400` + field map for form errors |
 | API services | Throw typed errors → `error-handler` middleware → consistent JSON |
-| External fixture service | Timeout/network errors → `502` with clear message; no partial DB writes (use transactions) |
+| External schedule service | Timeout/network errors → `502` with clear message; no partial DB writes (use transactions) |
 | React | Top-of-page alert for API errors; inline for validation; confirm modals for destructive actions |
 
 Destructive actions (re-create fixtures, re-schedule, move players) always require explicit UI confirmation before calling the API.
@@ -334,7 +331,7 @@ Destructive actions (re-create fixtures, re-schedule, move players) always requi
 
 - **Transactions:** Fixture creation, registration save, and move-players wrap delete+insert in a single SQLite transaction
 - **Foreign keys:** Enforced at DB level; cascade deletes from `tournament` and `stages`
-- **Ordering:** `sort_order` on `registration` and `stages_players` preserved for external service input
+- **Ordering:** `sort_order` on `registration` and `stages_players`
 - **Idempotency:** Re-run endpoints are intentionally destructive but predictable (documented in UI warnings)
 
 ---
@@ -350,7 +347,7 @@ Destructive actions (re-create fixtures, re-schedule, move players) always requi
 | XSS | React default escaping; sanitize any rich text if added later |
 | nginx | TLS termination; rate-limit `/api/auth/login` if exposed publicly |
 
-The fixture service should not be exposed to the public internet; bind to localhost or restrict via firewall.
+The schedule service should not be exposed to the public internet; bind to localhost or restrict via firewall.
 
 ---
 
@@ -385,7 +382,7 @@ Detailed cases belong in `TESTPLAN.md` (future phase per [dev_flow.md](dev_flow.
 5. Set production `.env` on server
 6. Start Node: `node apps/api/dist/index.js`
 7. Configure nginx `proxy_pass` to `PORT`
-8. Ensure fixture/schedule service is running at `FIXTURE_SERVICE_URL`
+8. Ensure schedule service is running at `SCHEDULE_SERVICE_URL`
 
 ---
 
@@ -418,4 +415,4 @@ Detailed cases belong in `TESTPLAN.md` (future phase per [dev_flow.md](dev_flow.
 
 ## Summary
 
-The proposed architecture is a **TypeScript monorepo** with a **React SPA** and **Express API** in one **Node.js process**, **SQLite** for persistence, and an **external fixture/schedule HTTP service**. nginx on your server handles TLS and proxies to Node; no container orchestration or cloud services are required. Business rules (scores, leaderboard, roles) stay in the backend; the frontend focuses on tournament workflows, confirmations, and clear error display.
+The proposed architecture is a **TypeScript monorepo** with a **React SPA** and **Express API** in one **Node.js process**, **SQLite** for persistence, and an **external schedule HTTP service**. nginx on your server handles TLS and proxies to Node; no container orchestration or cloud services are required. Business rules (scores, leaderboard, roles) stay in the backend; the frontend focuses on tournament workflows, confirmations, and clear error display.

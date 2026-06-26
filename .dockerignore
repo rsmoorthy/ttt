@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+apps/api/dist
+apps/web/dist
+data
+.git
+.env
+.env.*
+*.log
+__pycache__
+out
+.commandcode

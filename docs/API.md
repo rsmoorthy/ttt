@@ -61,7 +61,7 @@ Higher roles inherit lower-role permissions (see [ARCHITECTURE.md](ARCHITECTURE.
 | `403` | Forbidden (role or locked match for scorer) |
 | `404` | Tournament, stage, or match not found |
 | `409` | Business rule conflict |
-| `502` | External fixture/schedule service failure |
+| `502` | External schedule service failure |
 
 ### Error response body
 
@@ -94,7 +94,7 @@ API uses JSON booleans (`true` / `false`). SQLite stores them as `0` / `1`.
 
 ### Schedule field naming
 
-The database column is `table_num`. JSON uses `table` in schedule-related responses to match the external service and PRD wording.
+The database column is `tbl`. JSON uses `tbl` in schedule-related responses to match the external service and PRD wording.
 
 ---
 
@@ -402,6 +402,16 @@ Alternative form (explicit ordering):
 
 ## Stages
 
+Each stage has a `stage_type` that drives fixture generation and whether automated scheduling is available. See [ChangeRequest1.md](ChangeRequest1.md) for fixture algorithms per type.
+
+| `stage_type` | Typical use | Fixture generation | Automated schedule (`POST .../schedule`) |
+|--------------|-------------|--------------------|------------------------------------------|
+| `league` | Opening round | Variable players; `approx_total_matches` required | Yes — external schedule service |
+| `superleague` | QF (top 8) | Exactly 8 players in rank order | No — league-only per PRD |
+| `playoff` | SF (4) or Final (2) | 4 or 2 players in rank order | No — league-only per PRD |
+
+`stage_type` is set explicitly at create/edit. Slug-based inference is **not** used.
+
 ### `GET /api/tournaments/:slug/stages`
 
 **Role:** guest+
@@ -416,12 +426,14 @@ Alternative form (explicit ordering):
       "slug": "league",
       "name": "League",
       "description": "Round robin groups",
+      "stage_type": "league",
       "is_completed": false
     },
     {
       "slug": "qf",
       "name": "Quarter Finals",
       "description": "",
+      "stage_type": "superleague",
       "is_completed": false
     }
   ]
@@ -441,6 +453,7 @@ Alternative form (explicit ordering):
   "name": "League",
   "slug": "league",
   "description": "Round robin groups",
+  "stage_type": "league",
   "is_completed": false
 }
 ```
@@ -450,6 +463,7 @@ Alternative form (explicit ordering):
 | `name` | string | yes | Non-empty |
 | `slug` | string | yes | Unique per tournament |
 | `description` | string | no | Default `""` |
+| `stage_type` | string | yes | One of `league`, `superleague`, `playoff` |
 | `is_completed` | boolean | no | Default `false` |
 
 **Response `201`:** stage object (same shape as list item).
@@ -476,6 +490,7 @@ Alternative form (explicit ordering):
   "slug": "league",
   "name": "League",
   "description": "Round robin groups",
+  "stage_type": "league",
   "is_completed": false
 }
 ```
@@ -492,6 +507,7 @@ Alternative form (explicit ordering):
 {
   "name": "League Stage",
   "description": "Updated",
+  "stage_type": "league",
   "is_completed": true
 }
 ```
@@ -560,6 +576,7 @@ Fixture screen state: resolved players, existing groups/matches (if any).
 {
   "tournament": "summer-open-2026",
   "stage": "league",
+  "stage_type": "league",
   "players": [
     { "player_name": "Alice", "sort_order": 0 },
     { "player_name": "Bob", "sort_order": 1 }
@@ -575,7 +592,7 @@ Fixture screen state: resolved players, existing groups/matches (if any).
       "slno": 1,
       "player1": "Alice",
       "player2": "Bob",
-      "table": null,
+      "tbl": null,
       "hour_slot": null,
       "game1": "",
       "game2": "",
@@ -603,32 +620,33 @@ When no fixtures exist: `"has_fixtures": false`, `"groups": {}`, `"matches": []`
 
 **Role:** admin+
 
-Generates fixtures via the external service and **replaces** all `fixtures` and `fixture_groups` for this stage. Scores and schedule from a prior run are discarded.
+Generates fixtures in-process (per [ChangeRequest1.md](ChangeRequest1.md)) and **replaces** all `fixtures` and `fixture_groups` for this stage. Scores and schedule from a prior run are discarded. The handler reads `stage_type` from the stage record and dispatches to the matching generator.
 
-**Request body:**
+**Request body (league):**
 
 ```json
 {
-  "approx_total_matches": 8,
-  "number_of_groups": 2
+  "approx_total_matches": 70
 }
+```
+
+**Request body (superleague or playoff):**
+
+```json
+{}
 ```
 
 | Field | Type | Required | Constraints |
 |-------|------|----------|-------------|
-| `approx_total_matches` | integer | yes | > 0 |
-| `number_of_groups` | integer | yes | > 0 |
+| `approx_total_matches` | integer | league only | > 0; ignored for `superleague` / `playoff` |
 
-The API loads ordered player names, then calls the external service:
+**Player count rules (from stage player source):**
 
-```json
-{
-  "approx_total_matches": 8,
-  "number_of_groups": 2,
-  "scheme": "league",
-  "players": ["Alice", "Bob", "Carol", "Dave"]
-}
-```
+| `stage_type` | Players required | Order |
+|--------------|------------------|-------|
+| `league` | ≥ 2 | Shuffled internally before grouping |
+| `superleague` | exactly 8 | Rank order preserved (no shuffle) |
+| `playoff` | 4 (SF) or 2 (Final) | Rank order preserved; SF order `[A1, A2, B1, B2]` |
 
 **Response `200`:**
 
@@ -638,10 +656,6 @@ The API loads ordered player names, then calls the external service:
   "stage": "league",
   "total_matches": 6,
   "matches_per_player": 2,
-  "groups": {
-    "A": ["Alice", "Bob"],
-    "B": ["Carol", "Dave"]
-  },
   "matches": [
     { "slno": 1, "player1": "Alice", "player2": "Bob" }
   ]
@@ -652,9 +666,8 @@ The API loads ordered player names, then calls the external service:
 
 | Code | Condition |
 |------|-----------|
-| `400` | Validation failure; no players available |
+| `400` | Validation failure; no players available; wrong player count for `stage_type`; missing `approx_total_matches` for `league` |
 | `404` | Tournament or stage not found |
-| `502` | External `POST /fixtures` failed or returned invalid JSON |
 
 ---
 
@@ -662,9 +675,12 @@ The API loads ordered player names, then calls the external service:
 
 ### `GET /api/tournaments/:slug/stages/:stage/schedule`
 
-**Role:** admin+
+**Role:** guest+
 
-Schedule screen state: matches to be scheduled (read-only list).
+Schedule screen state for all roles. Returns fixture matches with optional `tbl` and `hour_slot` values. The SPA uses these fields to choose the view (per [prd.md](prd.md)):
+
+- **Unscheduled** — all matches have `tbl` and `hour_slot` null; UI shows a flat table with empty slot/table columns.
+- **Scheduled** — at least one match has non-null `tbl` or `hour_slot`; UI shows the hour-slot / per-table grid.
 
 **Response `200`:**
 
@@ -672,18 +688,21 @@ Schedule screen state: matches to be scheduled (read-only list).
 {
   "tournament": "summer-open-2026",
   "stage": "league",
+  "stage_type": "league",
   "has_fixtures": true,
   "matches": [
     {
       "slno": 1,
       "player1": "Alice",
       "player2": "Bob",
-      "table": 2,
+      "tbl": 2,
       "hour_slot": 1
     }
   ]
 }
 ```
+
+Before scheduling, `tbl` and `hour_slot` are `null`. `stage_type` lets the UI show or hide **admin+** scheduling controls (league-only per PRD). `POST .../schedule` remains admin+.
 
 **Errors:**
 
@@ -698,7 +717,12 @@ Schedule screen state: matches to be scheduled (read-only list).
 
 **Role:** admin+
 
-Schedules matches via the external service and **overwrites** `table` and `hour_slot` on all fixtures for this stage.
+Schedules matches and **overwrites** `tbl` and `hour_slot` on all fixtures for this stage.
+
+**`stage_type` behaviour:**
+
+- **`league`** — calls the external schedule service (`POST {SCHEDULE_SERVICE_URL}/schedule`), then persists the returned slots.
+- **`superleague` / `playoff`** — returns `400`; automated scheduling is league-only per [prd.md](prd.md). Knockout stages have few matches (see [ChangeRequest1.md](ChangeRequest1.md)); use admin hand-edit when needed.
 
 **Request body:**
 
@@ -716,20 +740,6 @@ Schedules matches via the external service and **overwrites** `table` and `hour_
 | `numTables` | integer | yes | > 0 |
 | `maxMatchesPerSlot` | integer | yes | > 0 |
 
-The API sends existing matches to the external service:
-
-```json
-{
-  "numSlots": 7,
-  "numTables": 2,
-  "maxMatchesPerSlot": 6,
-  "scheme": "league",
-  "matches": [
-    { "player1": "Alice", "player2": "Bob" }
-  ]
-}
-```
-
 **Response `200`:**
 
 ```json
@@ -738,11 +748,10 @@ The API sends existing matches to the external service:
   "stage": "league",
   "matches": [
     {
-      "slno": 1,
       "player1": "Alice",
       "player2": "Bob",
       "hour_slot": 1,
-      "table": 2
+      "tbl": 2
     }
   ]
 }
@@ -752,10 +761,42 @@ The API sends existing matches to the external service:
 
 | Code | Condition |
 |------|-----------|
-| `400` | Validation failure |
+| `400` | Validation failure; `stage_type` is not `league` |
 | `404` | Tournament or stage not found |
 | `409` | No fixtures to schedule |
 | `502` | External `POST /schedule` failed |
+
+#### External service (league only)
+
+When `stage_type === "league"`, the backend sends existing matches to the external service. The following is the backend → external request (not sent by the SPA):
+
+
+**Request body to external service:**
+
+```json
+{
+  "numSlots": 7,
+  "numTables": 2,
+  "maxMatchesPerSlot": 6,
+  "scheme": "league",
+  "totalPlayers": ["A1", "A2"],
+  "matches": [
+    { "player1": "Alice", "player2": "Bob" }
+  ]
+}
+```
+
+**Response body from external service:**
+
+```json
+  {
+    "status": "ok|error",
+    "error": "only if error",
+    "matches": [
+      {  "player1": "A1", "player2": "A2", "hour_slot" : 1, "tbl": 1}
+    ]
+  }
+```
 
 ---
 
@@ -765,7 +806,7 @@ The API sends existing matches to the external service:
 
 **Role:** guest+
 
-List matches for the scores screen. Sorted by `hour_slot` ascending, then `table` ascending. Matches with null schedule fields sort last.
+List matches for the scores screen. Sorted by `hour_slot` ascending, then `tbl` ascending. Matches with null schedule fields sort last.
 
 **Query parameters:**
 
@@ -773,7 +814,7 @@ List matches for the scores screen. Sorted by `hour_slot` ascending, then `table
 |-------|------|----------|-------------|
 | `player` | string | no | Filter: match includes this player as `player1` or `player2` |
 | `hour_slot` | integer | no | Filter: exact hour slot |
-| `table` | integer | no | Filter: exact table number |
+| `tbl` | integer | no | Filter: exact table number |
 
 Multiple filters are ANDed. Omit or leave empty to ignore a filter.
 
@@ -788,14 +829,14 @@ Multiple filters are ANDed. Omit or leave empty to ignore a filter.
   "filters": {
     "player": "Alice",
     "hour_slot": 2,
-    "table": null
+    "tbl": null
   },
   "matches": [
     {
       "slno": 3,
       "player1": "Alice",
       "player2": "Carol",
-      "table": 1,
+      "tbl": 1,
       "hour_slot": 2,
       "game1": "11-7",
       "game2": "9-11",
@@ -809,7 +850,7 @@ Multiple filters are ANDed. Omit or leave empty to ignore a filter.
   "filter_options": {
     "players": ["Alice", "Bob", "Carol", "Dave"],
     "hour_slots": [1, 2, 3],
-    "tables": [1, 2]
+    "tbls": [1, 2]
   }
 }
 ```
@@ -910,7 +951,7 @@ Marks a match as over (`is_completed = true`). PRD: "Match Over" button.
   "slno": 3,
   "player1": "Alice",
   "player2": "Carol",
-  "table": 1,
+  "tbl": 1,
   "hour_slot": 2,
   "game1": "11-7",
   "game2": "9-11",
@@ -1056,7 +1097,7 @@ Moves selected players from the current stage context into a **target** stage. R
 | GET | `/api/tournaments/:slug/stages/:stage/players` | admin+ | Fixture player source |
 | GET | `/api/tournaments/:slug/stages/:stage/fixtures` | admin+ | Fixture screen state |
 | POST | `/api/tournaments/:slug/stages/:stage/fixtures` | admin+ | Generate fixtures |
-| GET | `/api/tournaments/:slug/stages/:stage/schedule` | admin+ | Schedule screen state |
+| GET | `/api/tournaments/:slug/stages/:stage/schedule` | guest+ | Schedule screen state |
 | POST | `/api/tournaments/:slug/stages/:stage/schedule` | admin+ | Run scheduling |
 | GET | `/api/tournaments/:slug/stages/:stage/matches` | guest+ | List/filter matches |
 | PATCH | `/api/tournaments/:slug/stages/:stage/matches/:slno` | scorer+ | Update scores |
@@ -1068,9 +1109,11 @@ Moves selected players from the current stage context into a **target** stage. R
 
 ## External service contract (reference)
 
-The API proxies to `FIXTURE_SERVICE_URL` (default `http://localhost:8383`). These are **not** exposed by the TT app; documented here for implementers.
+The API proxies to `SCHEDULE_SERVICE_URL` (default `http://localhost:8383`). These are **not** exposed by the TT app; documented here for implementers.
 
-### `POST {FIXTURE_SERVICE_URL}/fixtures`
+### `POST {SCHEDULE_SERVICE_URL}/fixtures`
+
+Note: This external service will not be used. Kept for historical reasons.
 
 **Request:**
 
@@ -1099,7 +1142,7 @@ The API proxies to `FIXTURE_SERVICE_URL` (default `http://localhost:8383`). Thes
 }
 ```
 
-### `POST {FIXTURE_SERVICE_URL}/schedule`
+### `POST {SCHEDULE_SERVICE_URL}/schedule`
 
 **Request:**
 
@@ -1122,13 +1165,9 @@ The API proxies to `FIXTURE_SERVICE_URL` (default `http://localhost:8383`). Thes
   {
     "status": "ok|error",
     "error": "only if error",
-    "matches": {
-      "1": {  // This is hour slot
-        1: [ // This is table number
-          {  "player1": "A1", "player2": "A2" },
-          {  "player1": "B1", "player2": "B2" },
-      ]
-    }
+    "matches": [
+      {  "player1": "A1", "player2": "A2", "hour_slot" : 1, "tbl": 1}
+    ]
   }
 ```
 

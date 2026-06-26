@@ -19,6 +19,32 @@ export function listStagePlayers(
     .all(tournament, stage) as RegistrationPlayer[];
 }
 
+export function replaceStagePlayers(
+  tournament: string,
+  stage: string,
+  players: string[],
+): RegistrationPlayer[] {
+  const db = getDb();
+
+  const replaceAll = db.transaction(() => {
+    db.prepare(
+      "DELETE FROM stages_players WHERE tournament = ? AND stage = ?",
+    ).run(tournament, stage);
+
+    const insert = db.prepare(
+      `INSERT INTO stages_players (tournament, stage, player_name, sort_order)
+       VALUES (?, ?, ?, ?)`,
+    );
+
+    players.forEach((playerName, index) => {
+      insert.run(tournament, stage, playerName, index);
+    });
+  });
+
+  replaceAll();
+  return listStagePlayers(tournament, stage);
+}
+
 export function resolveStagePlayers(
   tournament: string,
   stage: string,

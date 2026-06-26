@@ -32,7 +32,7 @@ Top-level items appear in this order. Items marked **hidden** are not shown in t
 | Registration | guest+ | yes | — | `/registration` |
 | Stages | guest+ | yes | — | `/stages` |
 | Fixtures | admin+ | yes | yes | `/fixtures` |
-| Schedule | admin+ | yes | yes | `/schedule` |
+| Schedule | guest+ | yes | yes | `/schedule` |
 | Scores | guest+ | yes | yes | `/scores` |
 | Leaderboard | guest+ | yes | yes | `/leaderboard` |
 | Move to Stage | admin+ | yes | yes | `/move-players` |
@@ -48,7 +48,7 @@ There are no nested dropdown submenus in v1. **Tournament picker** and **stage t
 | Registration | ✓ | ✓ | ✓ | ✓ |
 | Stages | ✓ | ✓ | ✓ | ✓ |
 | Fixtures | — | — | ✓ | ✓ |
-| Schedule | — | — | ✓ | ✓ |
+| Schedule | ✓ | ✓ | ✓ | ✓ |
 | Scores | ✓ | ✓ | ✓ | ✓ |
 | Leaderboard | ✓ | ✓ | ✓ | ✓ |
 | Move to Stage | — | — | ✓ | ✓ |
@@ -109,7 +109,7 @@ There are no nested dropdown submenus in v1. **Tournament picker** and **stage t
 | 9 | Create stage | `/tournaments/:slug/stages/new` | admin+ |
 | 10 | Edit stage | `/tournaments/:slug/stages/:stage/edit` | admin+ |
 | 11 | Fixtures | `/tournaments/:slug/fixtures/:stage` | admin+ |
-| 12 | Schedule | `/tournaments/:slug/schedule/:stage` | admin+ |
+| 12 | Schedule | `/tournaments/:slug/schedule/:stage` | guest+ (admin+ creates) |
 | 13 | Scores | `/tournaments/:slug/scores/:stage` | guest+ |
 | 14 | Score edit popup | (modal on Scores screen) | scorer+ |
 | 15 | Leaderboard | `/tournaments/:slug/leaderboard/:stage` | guest+ |
@@ -348,9 +348,12 @@ Read-only table columns: `#`, `Player name` (from `sort_order` + 1).
 | Name | text | yes |
 | Slug | text | yes |
 | Description | textarea | no |
+| Stage type | dropdown | yes |
 | Is completed | checkbox | no, default false |
 | Save | button | |
 | Cancel | button | → stages list |
+
+**Stage type** options (maps to `stage_type` in API): League (`league`), Super League (`superleague`), Playoff (`playoff`). Set explicitly — not inferred from slug. See [ChangeRequest1.md](ChangeRequest1.md) for how each type affects fixtures and scheduling.
 
 **API calls:**
 
@@ -382,6 +385,7 @@ Same fields as Create. Slug read-only.
 |--------|--------------|-------|
 | Name | `name` | |
 | Slug | `slug` | |
+| Stage type | `stage_type` | League / Super League / Playoff |
 | Description | `description` | |
 | Completed | `is_completed` | Yes / No |
 | Actions | — | **Edit** · **Delete** (admin+ only) |
@@ -402,11 +406,18 @@ Delete confirm: “Delete stage {name}? All fixtures and scores for this stage w
 | Tournament name | Header |
 | Stage tabs | One tab per stage; active tab = `:stage` |
 | Players | Read-only list (`player_name`) |
-| Approx total matches | number input |
-| Number of groups | number input |
+| Approx total matches | number input; **shown only when `stage_type === 'league'`** |
 | Create Fixtures | button |
 | Existing groups | Read-only (if `has_fixtures`) |
 | Existing matches | Read-only table: slno, player1, player2 |
+
+**Fixture rules by `stage_type`** (see [ChangeRequest1.md](ChangeRequest1.md)):
+
+| `stage_type` | UI inputs | Player requirements |
+|--------------|-----------|---------------------|
+| `league` | Approx total matches | ≥ 2; shuffled internally on generate |
+| `superleague` | None (no approx field) | Exactly 8 in rank order |
+| `playoff` | None (no approx field) | 4 (SF) or 2 (Final) in rank order |
 
 **Create Fixtures confirm (if `has_fixtures`):**  
 “This action is dangerous and will remove all existing fixtures and scores for this stage. Continue?”
@@ -419,7 +430,7 @@ Delete confirm: “Delete stage {name}? All fixtures and scores for this stage w
 | Mount / tab change | GET | `/api/tournaments/:slug/stages/:stage/fixtures` |
 | Create Fixtures | POST | `/api/tournaments/:slug/stages/:stage/fixtures` |
 
-**POST body:** `{ "approx_total_matches": 8, "number_of_groups": 2 }`
+**POST body:** `{ "approx_total_matches": 70 }` for league; `{}` for superleague / playoff.
 
 **On success:** Refresh fixtures GET; show summary (`total_matches`, `matches_per_player`).
 
@@ -428,33 +439,49 @@ Delete confirm: “Delete stage {name}? All fixtures and scores for this stage w
 ### 12. Schedule
 
 **URL:** `/tournaments/:slug/schedule/:stage`  
-**Role:** admin+
+**Role:** guest+ (view); admin+ (create / re-run schedule)
 
 **Layout:**
 
-| Element | Notes |
-|---------|-------|
-| Stage tabs | Same pattern as Fixtures |
-| Matches list | Read-only: slno, player1, player2 |
-| Hour slots | number input |
-| Tables | number input |
-| Max matches per table/slot | number input |
-| Schedule | button |
+| Element | Role | Notes |
+|---------|------|-------|
+| Stage tabs | guest+ | Same pattern as Fixtures |
+| Matches table (unscheduled) | guest+ | See **View modes** below |
+| Schedule grid (scheduled) | guest+ | See **View modes** below |
+| Hour slots | admin+ | number input; **league only** |
+| Tables | admin+ | number input; **league only** |
+| Max matches per table/slot | admin+ | number input; **league only** |
+| Schedule | admin+ | button; **league only** |
 
-If no fixtures (`409` or `has_fixtures: false`): show error — “Create fixtures first” with link to fixtures screen.
+If no fixtures (`409` or `has_fixtures: false`): show “Create fixtures first”. **admin+** also see a link to the fixtures screen; **guest+** see the message only (no link).
 
-**Schedule confirm (if matches already have `hour_slot`/`table`):**  
+**View modes** (per [prd.md](prd.md)):
+
+The UI picks the layout from `matches` returned by `GET .../schedule`. If **no** match has a non-null `hour_slot` or `tbl`, use the **unscheduled** table. If **any** match has a non-null `hour_slot` or `tbl`, use the **scheduled** grid.
+
+1. **Unscheduled** — flat table with columns: `slno`, `player1`, `player2`, `hour_slot`, `tbl`. The last two columns are empty until scheduling runs.
+2. **Scheduled** — grid grouped by hour slot and table:
+   - Column 1: `hour_slot` (row-span = number of match rows in that slot).
+   - Columns 2…N: “Matches in Table 1”, “Matches in Table 2”, … (one column per table in use).
+   - Each cell shows `slno, player1, player2`.
+
+**`stage_type` behaviour (admin+ only for controls):**
+
+- **`league`** — show scheduling inputs and Schedule button; POST calls external schedule service via API.
+- **`superleague` / `playoff`** — hide scheduling inputs and Schedule button; show read-only message that automated scheduling is available for league stages only (per [prd.md](prd.md)). Knockout fixtures are few — see [ChangeRequest1.md](ChangeRequest1.md). Admin may set `tbl` / `hour_slot` via hand-edit when needed. **guest+** still see the matches table or grid when fixtures exist.
+
+**Schedule confirm (admin+; if matches already have `hour_slot`/`tbl`):**  
 “This action overwrites the earlier schedule. Continue?”
 
 **API calls:**
 
-| When | Method | URL |
-|------|--------|-----|
-| Mount / tab change | GET | `/api/tournaments/:slug/stages` |
-| Mount / tab change | GET | `/api/tournaments/:slug/stages/:stage/schedule` |
-| Schedule | POST | `/api/tournaments/:slug/stages/:stage/schedule` |
+| When | Method | URL | Role |
+|------|--------|-----|------|
+| Mount / tab change | GET | `/api/tournaments/:slug/stages` | guest+ |
+| Mount / tab change | GET | `/api/tournaments/:slug/stages/:stage/schedule` | guest+ |
+| Schedule | POST | `/api/tournaments/:slug/stages/:stage/schedule` | admin+ (league only) |
 
-**POST body:** `{ "numSlots": 7, "numTables": 2, "maxMatchesPerSlot": 6 }`
+**POST body (league):** `{ "numSlots": 7, "numTables": 2, "maxMatchesPerSlot": 6 }`
 
 ---
 
@@ -481,9 +508,17 @@ If no fixtures (`409` or `has_fixtures: false`): show error — “Create fixtur
 | Player 2 | — | |
 | Game 1 … Game 5 | yes* | `n1-n2` format; validation on blur/submit |
 | Walkover win | yes* | Dropdown: empty, player1 name, player2 name |
-| Match Over | scorer+ | Button; disabled if no scores and no walkover |
+| Match Over | scorer+ | Button; see **Match Over rules** below |
 
 \*Read-only for guest. Read-only for scorer when `is_completed` (admin+ can still edit).
+
+**Match Over rules** (per [prd.md](prd.md); UI-only enablement — backend may accept broader input):
+
+- Disabled when `is_completed`.
+- Disabled when `walkover_win` is empty **and** Game 1 and Game 2 do not both hold valid `n1-n2` scores.
+- Disabled when `walkover_win` is empty and each player has won the same number of games (player1 wins a game when `n1 > n2`; player2 wins when `n2 > n1`; counts all non-empty valid game scores).
+- Enabled when `walkover_win` is set (non-empty player name).
+- Enabled when `walkover_win` is empty, Game 1 and Game 2 each contain a valid score string (validated the same way as inline edits), and one player has won more games than the other. Game 3–Game 5 alone are not sufficient without valid Game 1 and Game 2.
 
 **Row click:** Opens score edit popup (screen 14).
 
@@ -492,7 +527,7 @@ If no fixtures (`409` or `has_fixtures: false`): show error — “Create fixtur
 | When | Method | URL |
 |------|--------|-----|
 | Mount / tab change | GET | `/api/tournaments/:slug/stages` |
-| Mount / refresh / filter change | GET | `/api/tournaments/:slug/stages/:stage/matches?player=&hour_slot=&table=` |
+| Mount / refresh / filter change | GET | `/api/tournaments/:slug/stages/:stage/matches?player=&hour_slot=&tbl=` |
 | Inline field change (scorer+) | PATCH | `/api/tournaments/:slug/stages/:stage/matches/:slno` |
 | Match Over | POST | `/api/tournaments/:slug/stages/:stage/matches/:slno/complete` |
 
@@ -513,7 +548,7 @@ Filter query params omitted when “—select—” is chosen.
 | Score grid | Column headers: label · `{player1}` vs `{player2}` |
 | Rows | Game 1 … Game 5 with score inputs |
 | Walkover | Dropdown (same rules as table) |
-| Match Over | button |
+| Match Over | button; same enable/disable rules as table |
 | Close | button |
 
 **API calls:** Same PATCH / POST complete as inline table; one match at a time.
@@ -621,7 +656,7 @@ Summary of APIs each screen invokes (excluding shared auth).
 | Create stage | — | `POST /api/tournaments/:slug/stages` |
 | Edit stage | `/api/tournaments/:slug/stages/:stage` | `PUT /api/tournaments/:slug/stages/:stage` |
 | Fixtures | `/api/tournaments/:slug/stages`, `.../fixtures` | `POST .../fixtures` |
-| Schedule | `/api/tournaments/:slug/stages`, `.../schedule` | `POST .../schedule` |
+| Schedule | `/api/tournaments/:slug/stages`, `.../schedule` (guest+) | `POST .../schedule` (admin+) |
 | Scores | `/api/tournaments/:slug/stages`, `.../matches?...` | `PATCH .../matches/:slno`, `POST .../complete` |
 | Leaderboard | `/api/tournaments/:slug/stages`, `.../leaderboard` | — |
 | Move to Stage | `/api/tournaments/:slug/stages`, `.../leaderboard` | `POST .../move-players` |

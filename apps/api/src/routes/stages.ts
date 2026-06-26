@@ -13,12 +13,20 @@ import { requireAuth } from "../middleware/require-auth";
 import { requireRole } from "../middleware/require-role";
 import { createStageSchema, updateStageSchema } from "../validators/stages";
 import { fixturesRouter } from "./fixtures";
+import { leaderboardRouter } from "./leaderboard";
+import { matchesRouter } from "./matches";
+import { movePlayersRouter } from "./move-players";
+import { scheduleRouter } from "./schedule";
 import { stagePlayersRouter } from "./stage-players";
 
 export const stagesRouter = Router({ mergeParams: true });
 
 stagesRouter.use("/:stage/players", stagePlayersRouter);
 stagesRouter.use("/:stage/fixtures", fixturesRouter);
+stagesRouter.use("/:stage/schedule", scheduleRouter);
+stagesRouter.use("/:stage/matches", matchesRouter);
+stagesRouter.use("/:stage/leaderboard", leaderboardRouter);
+stagesRouter.use("/:stage/move-players", movePlayersRouter);
 
 function requireTournament(slug: string) {
   const tournament = findTournamentBySlug(slug);

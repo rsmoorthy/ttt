@@ -6,11 +6,15 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@ttt/api",
+    "build": "npm run build --workspace=@ttt/api && npm run build --workspace=@ttt/web",
+    "build:api": "npm run build --workspace=@ttt/api",
+    "build:web": "npm run build --workspace=@ttt/web",
     "dev:api": "npm run dev --workspace=@ttt/api",
+    "dev:web": "npm run dev --workspace=@ttt/web",
     "start:api": "npm run start --workspace=@ttt/api",
     "db:init": "bash scripts/create_db.sh",
-    "test": "npm run test --workspace=@ttt/api",
+    "test": "npm run test --workspace=@ttt/api && npm run test --workspace=@ttt/web",
+    "test:web": "npm run test --workspace=@ttt/web",
     "test:api": "bash scripts/tests_api.sh"
   },
   "engines": {

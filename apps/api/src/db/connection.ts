@@ -23,15 +23,51 @@ export function getDb(): Database.Database {
   return db;
 }
 
+function tableColumns(
+  database: Database.Database,
+  table: string,
+): Array<{ name: string }> {
+  return database.prepare(`PRAGMA table_info(${table})`).all() as Array<{
+    name: string;
+  }>;
+}
+
 function migrate(database: Database.Database): void {
-  const stageColumns = database
-    .prepare("PRAGMA table_info(stages)")
-    .all() as Array<{ name: string }>;
+  const stagesTable = database
+    .prepare(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'stages'`,
+    )
+    .get() as { name: string } | undefined;
+
+  if (!stagesTable) {
+    return;
+  }
+
+  const stageColumns = tableColumns(database, "stages");
 
   if (!stageColumns.some((column) => column.name === "stage_type")) {
     database.exec(
       `ALTER TABLE stages ADD COLUMN stage_type TEXT NOT NULL DEFAULT 'league'`,
     );
+  }
+
+  const fixturesTable = database
+    .prepare(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'fixtures'`,
+    )
+    .get() as { name: string } | undefined;
+
+  if (!fixturesTable) {
+    return;
+  }
+
+  const fixtureColumns = tableColumns(database, "fixtures");
+
+  if (
+    fixtureColumns.some((column) => column.name === "table_num") &&
+    !fixtureColumns.some((column) => column.name === "tbl")
+  ) {
+    database.exec(`ALTER TABLE fixtures RENAME COLUMN table_num TO tbl`);
   }
 }
 

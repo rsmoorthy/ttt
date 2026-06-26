@@ -6,8 +6,8 @@ const app = createApp();
 
 getDb();
 
-const server = app.listen(env.port, () => {
-  console.log(`API listening on http://localhost:${env.port}`);
+const server = app.listen(env.port, env.host, () => {
+  console.log(`API listening on http://${env.host}:${env.port}`);
   console.log(`Database: ${env.dbPath}`);
 });
 

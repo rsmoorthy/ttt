@@ -133,36 +133,47 @@ expect_json_field "Created stage name" "${body}" ".name" "League"
 expect_json_field "Created stage type" "${body}" ".stage_type" "league"
 expect_json_field "Created stage is_completed" "${body}" ".is_completed" "false"
 
-# 6. Duplicate stage slug -> 409
+# 6. Default stage_type to league when omitted -> 201
+DEFAULT_SLUG="default-${TS}"
+raw="$(request POST "${STAGES_PATH}" "{\"slug\":\"${DEFAULT_SLUG}\",\"name\":\"Default League\"}")"
+body="$(expect_status "POST stage without stage_type" "201" "${raw}")"
+expect_json_field "Default stage_type" "${body}" ".stage_type" "league"
+
+# 7. Invalid stage_type -> 400
+raw="$(request POST "${STAGES_PATH}" "{\"slug\":\"bad-type-${TS}\",\"name\":\"Bad\",\"stage_type\":\"knockout\"}")"
+expect_status "POST invalid stage_type" "400" "${raw}"
+
+# 8. Duplicate stage slug -> 409
 raw="$(request POST "${STAGES_PATH}" "{\"slug\":\"${STAGE_SLUG}\",\"name\":\"Duplicate\"}")"
 expect_status "POST duplicate stage slug" "409" "${raw}"
 
-# 7. Invalid stage slug -> 400
+# 9. Invalid stage slug -> 400
 raw="$(request POST "${STAGES_PATH}" "{\"slug\":\"Bad_Slug\",\"name\":\"Bad\"}")"
 expect_status "POST invalid stage slug" "400" "${raw}"
 
-# 8. Guest lists stages -> 200 with one stage
+# 10. Guest lists stages -> 200 with two stages
 login guest1
 raw="$(request GET "${STAGES_PATH}")"
 body="$(expect_status "GET stages after create" "200" "${raw}")"
-expect_json_field "Stages count after create" "${body}" ".stages | length" "1"
-expect_json_field "Listed stage slug" "${body}" ".stages[0].slug" "${STAGE_SLUG}"
+expect_json_field "Stages count after create" "${body}" ".stages | length" "2"
+expect_json_field "Listed league stage slug" "${body}" ".stages[] | select(.slug==\"${STAGE_SLUG}\") | .slug" "${STAGE_SLUG}"
+expect_json_field "Listed league stage_type" "${body}" ".stages[] | select(.slug==\"${STAGE_SLUG}\") | .stage_type" "league"
 
-# 9. Guest GET single stage -> 200
+# 11. Guest GET single stage -> 200
 raw="$(request GET "${STAGES_PATH}/${STAGE_SLUG}")"
 body="$(expect_status "GET stage as guest" "200" "${raw}")"
 expect_json_field "GET stage tournament" "${body}" ".tournament" "${TEST_SLUG}"
 expect_json_field "GET stage slug" "${body}" ".slug" "${STAGE_SLUG}"
 
-# 10. GET unknown stage -> 404
+# 12. GET unknown stage -> 404
 raw="$(request GET "${STAGES_PATH}/does-not-exist")"
 expect_status "GET unknown stage" "404" "${raw}"
 
-# 11. Guest forbidden on PUT -> 403
+# 13. Guest forbidden on PUT -> 403
 raw="$(request PUT "${STAGES_PATH}/${STAGE_SLUG}" '{"name":"Updated"}')"
 expect_status "PUT stage as guest" "403" "${raw}"
 
-# 12. Admin updates stage -> 200
+# 14. Admin updates stage -> 200
 login admin1
 raw="$(request PUT "${STAGES_PATH}/${STAGE_SLUG}" '{"name":"League Updated","description":"Updated desc","stage_type":"superleague","is_completed":true}')"
 body="$(expect_status "PUT stage as admin" "200" "${raw}")"
@@ -171,27 +182,29 @@ expect_json_field "Updated stage description" "${body}" ".description" "Updated 
 expect_json_field "Updated stage type" "${body}" ".stage_type" "superleague"
 expect_json_field "Updated stage is_completed" "${body}" ".is_completed" "true"
 
-# 13. PUT empty body -> 400
+# 15. PUT empty body -> 400
 raw="$(request PUT "${STAGES_PATH}/${STAGE_SLUG}" '{}')"
 expect_status "PUT stage empty body" "400" "${raw}"
 
-# 14. Guest forbidden on DELETE -> 403
+# 16. Guest forbidden on DELETE -> 403
 login guest1
 raw="$(request DELETE "${STAGES_PATH}/${STAGE_SLUG}")"
 expect_status "DELETE stage as guest" "403" "${raw}"
 
-# 15. Admin deletes stage -> 204
+# 17. Admin deletes stages -> 204
 login admin1
 raw="$(request DELETE "${STAGES_PATH}/${STAGE_SLUG}")"
-expect_status "DELETE stage as admin" "204" "${raw}"
+expect_status "DELETE league stage as admin" "204" "${raw}"
+raw="$(request DELETE "${STAGES_PATH}/${DEFAULT_SLUG}")"
+expect_status "DELETE default stage as admin" "204" "${raw}"
 
-# 16. GET list after delete -> empty
+# 18. GET list after delete -> empty
 login guest1
 raw="$(request GET "${STAGES_PATH}")"
 body="$(expect_status "GET stages after delete" "200" "${raw}")"
 expect_json_field "Stages empty after delete" "${body}" ".stages | length" "0"
 
-# 17. DELETE unknown stage -> 404
+# 19. DELETE unknown stage -> 404
 login admin1
 raw="$(request DELETE "${STAGES_PATH}/does-not-exist")"
 expect_status "DELETE unknown stage" "404" "${raw}"
