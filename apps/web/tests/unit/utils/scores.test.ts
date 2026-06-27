@@ -4,6 +4,7 @@ import {
   canEditMatch,
   countGamesWon,
   fieldErrorKey,
+  getCompletedMatchWinner,
   invalidScoreAlertMessage,
   hasDecisiveGameWins,
   hasScoreContent,
@@ -124,6 +125,42 @@ describe("scores utils", () => {
       }),
     ).toBe(false);
     expect(canCompleteMatchState(emptyState)).toBe(false);
+  });
+
+  it("identifies the completed match winner from games or walkover", () => {
+    expect(
+      getCompletedMatchWinner(
+        {
+          ...emptyState,
+          game1: "11-7",
+          game2: "9-11",
+          game3: "11-8",
+        },
+        "Alice",
+        "Bob",
+      ),
+    ).toBe("Alice");
+
+    expect(
+      getCompletedMatchWinner(
+        {
+          ...emptyState,
+          game1: "7-11",
+          game2: "11-9",
+          game3: "8-11",
+        },
+        "Alice",
+        "Bob",
+      ),
+    ).toBe("Bob");
+
+    expect(
+      getCompletedMatchWinner(
+        { ...emptyState, walkover_win: "Alice" },
+        "Alice",
+        "Bob",
+      ),
+    ).toBe("Alice");
   });
 
   it("counts game wins from player1 perspective", () => {

@@ -181,6 +181,28 @@ export function hasValidRequiredGames(state: MatchScoreState): boolean {
   );
 }
 
+export function getCompletedMatchWinner(
+  state: MatchScoreState,
+  player1: string,
+  player2: string,
+): string | null {
+  if (state.walkover_win !== "") {
+    return state.walkover_win;
+  }
+
+  const { player1Wins, player2Wins } = countGamesWon(state);
+
+  if (player1Wins > player2Wins) {
+    return player1;
+  }
+
+  if (player2Wins > player1Wins) {
+    return player2;
+  }
+
+  return null;
+}
+
 export function countGamesWon(state: MatchScoreState): {
   player1Wins: number;
   player2Wins: number;

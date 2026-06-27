@@ -7,6 +7,7 @@ import {
   canEditMatch,
   fieldErrorKey,
   GAME_FIELDS,
+  getCompletedMatchWinner,
   matchScoreState,
   scoreFieldId,
   scoreInputClassName,
@@ -15,6 +16,7 @@ import {
 import { MatchCompletionSummary } from "../matches/MatchCompletionSummary";
 import { Button } from "../ui/Button";
 import { InfoLabel } from "../ui/InfoLabel";
+import { PlayerNameWithWinner } from "./PlayerNameWithWinner";
 
 const WALKOVER_WIN_HELP =
   "Set this to the Player name, to indicate a Win, when the other player did not show up";
@@ -201,6 +203,14 @@ export function ScoresMatchesTable({
         <tbody className="divide-y divide-slate-100">
           {matches.map((match) => {
             const editable = canEditMatch(role, match);
+            const scoreState = getDraftState(match, drafts);
+            const winner = match.is_completed
+              ? getCompletedMatchWinner(
+                  scoreState,
+                  match.player1,
+                  match.player2,
+                )
+              : null;
 
             return (
               <tr
@@ -214,10 +224,16 @@ export function ScoresMatchesTable({
               >
                 <td className="px-3 py-3 text-slate-600">{match.slno}</td>
                 <td className="px-3 py-3 font-medium text-slate-900">
-                  {match.player1}
+                  <PlayerNameWithWinner
+                    name={match.player1}
+                    isWinner={winner === match.player1}
+                  />
                 </td>
                 <td className="px-3 py-3 font-medium text-slate-900">
-                  {match.player2}
+                  <PlayerNameWithWinner
+                    name={match.player2}
+                    isWinner={winner === match.player2}
+                  />
                 </td>
                 {GAME_FIELDS.map((field) => {
                   const errorKey = fieldErrorKey(match.slno, field);

@@ -124,6 +124,7 @@ describe("ScoresMatchesTable", () => {
     expect(
       screen.getByRole("button", { name: "Completed" }).closest("tr"),
     ).toHaveClass("bg-emerald-50");
+    expect(screen.getByLabelText("Match winner")).toBeInTheDocument();
   });
 
   it("calls complete for scorer roles", async () => {

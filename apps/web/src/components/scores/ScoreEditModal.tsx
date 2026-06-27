@@ -7,6 +7,7 @@ import {
   canEditMatch,
   fieldErrorKey,
   GAME_FIELDS,
+  getCompletedMatchWinner,
   matchScoreState,
   mergeMatchPatch,
   scoreFieldId,
@@ -15,6 +16,7 @@ import {
 } from "../../utils/scores";
 import { Button } from "../ui/Button";
 import { InfoLabel } from "../ui/InfoLabel";
+import { PlayerNameWithWinner } from "./PlayerNameWithWinner";
 
 const WALKOVER_WIN_HELP =
   "Set this to the Player name, to indicate a Win, when the other player did not show up";
@@ -47,6 +49,9 @@ export function ScoreEditModal({
 }: ScoreEditModalProps) {
   const editable = canEditMatch(role, match);
   const [draft, setDraft] = useState(matchScoreState(match));
+  const winner = match.is_completed
+    ? getCompletedMatchWinner(draft, match.player1, match.player2)
+    : null;
 
   useEffect(() => {
     setDraft(matchScoreState(match));
@@ -128,7 +133,15 @@ export function ScoreEditModal({
               Hour slot {match.hour_slot ?? "—"} · Table {match.tbl ?? "—"}
             </p>
             <p className="mt-1 text-sm font-medium text-slate-800">
-              {match.player1} vs {match.player2}
+              <PlayerNameWithWinner
+                name={match.player1}
+                isWinner={winner === match.player1}
+              />{" "}
+              vs{" "}
+              <PlayerNameWithWinner
+                name={match.player2}
+                isWinner={winner === match.player2}
+              />
             </p>
           </div>
           <button
@@ -142,7 +155,15 @@ export function ScoreEditModal({
 
         <div className="mt-6 space-y-4">
           <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-            {match.player1} vs {match.player2}
+            <PlayerNameWithWinner
+              name={match.player1}
+              isWinner={winner === match.player1}
+            />{" "}
+            vs{" "}
+            <PlayerNameWithWinner
+              name={match.player2}
+              isWinner={winner === match.player2}
+            />
           </p>
 
           {GAME_FIELDS.map((field, index) => {
