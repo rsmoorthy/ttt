@@ -222,10 +222,11 @@ export function ScoreEditModal({
           {hasMinimumRole(role, "scorer") ? (
             <Button
               type="button"
+              variant={match.is_completed ? "completed" : "primary"}
               disabled={saving || !canCompleteMatch(role, match, draft)}
               onClick={() => onComplete(match.slno)}
             >
-              Match Over
+              {match.is_completed ? "Completed" : "Match Over"}
             </Button>
           ) : null}
         </div>

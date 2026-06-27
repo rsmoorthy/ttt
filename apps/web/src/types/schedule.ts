@@ -29,6 +29,13 @@ export interface CreateScheduleInput {
   maxMatchesPerSlot: number;
 }
 
+export type ScheduleCompletionFilter = "" | "pending" | "completed";
+
+export interface ScheduleFilters {
+  player: string;
+  completion: ScheduleCompletionFilter;
+}
+
 export interface CreateScheduleResponse {
   tournament: string;
   stage: string;

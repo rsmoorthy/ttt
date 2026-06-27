@@ -6,7 +6,16 @@ function match(
   player1: string,
   player2: string,
   scores: Partial<
-    Pick<LeaderboardMatch, "game1" | "game2" | "game3" | "game4" | "game5" | "walkover_win">
+    Pick<
+      LeaderboardMatch,
+      | "game1"
+      | "game2"
+      | "game3"
+      | "game4"
+      | "game5"
+      | "walkover_win"
+      | "is_completed"
+    >
   > = {},
 ): LeaderboardMatch {
   return {
@@ -18,6 +27,7 @@ function match(
     game4: scores.game4 ?? "",
     game5: scores.game5 ?? "",
     walkover_win: scores.walkover_win ?? "",
+    is_completed: scores.is_completed ?? false,
   };
 }
 
@@ -133,6 +143,29 @@ describe("computeLeaderboard", () => {
     assert.equal(entries.length, 12);
     assert.equal(entries.filter((entry) => entry.wins === 1).length, 6);
     assert.equal(entries.filter((entry) => entry.wins === 0).length, 6);
+  });
+
+  it("counts played matches only when is_completed is true", () => {
+    const entries = computeLeaderboard([
+      match("Alice", "Bob", {
+        game1: "11-7",
+        game2: "11-5",
+        is_completed: true,
+      }),
+      match("Alice", "Carol", {
+        game1: "11-9",
+        game2: "11-8",
+        is_completed: false,
+      }),
+      match("Bob", "Carol", {
+        walkover_win: "Bob",
+        is_completed: true,
+      }),
+    ]);
+
+    assert.equal(entries.find((entry) => entry.player_name === "Alice")?.played, 1);
+    assert.equal(entries.find((entry) => entry.player_name === "Bob")?.played, 2);
+    assert.equal(entries.find((entry) => entry.player_name === "Carol")?.played, 1);
   });
 
   it("ignores matches without scores or walkover", () => {

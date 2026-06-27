@@ -40,6 +40,7 @@ leaderboardRouter.get(
         game4: match.game4,
         game5: match.game5,
         walkover_win: match.walkover_win,
+        is_completed: match.is_completed,
       }));
 
       res.json({

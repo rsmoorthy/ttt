@@ -1,7 +1,9 @@
 import {
   buildScheduleGrid,
+  filterScheduleMatches,
   hasExistingSchedule,
   LEAGUE_ONLY_SCHEDULE_MESSAGE,
+  schedulePlayerOptions,
   SCHEDULE_OVERWRITE_CONFIRM,
   showScheduleControls,
 } from "../../../src/utils/schedule";
@@ -79,6 +81,42 @@ describe("schedule utils", () => {
         { slno: 1, ...baseMatch },
       ]),
     ).toBeNull();
+  });
+
+  it("builds player options and filters matches by player and completion", () => {
+    const matches = [
+      { slno: 1, ...baseMatch },
+      {
+        slno: 2,
+        player1: "Alice",
+        player2: "Carol",
+        tbl: null,
+        hour_slot: null,
+        is_completed: true,
+      },
+      {
+        slno: 3,
+        player1: "Bob",
+        player2: "Carol",
+        tbl: null,
+        hour_slot: null,
+        is_completed: false,
+      },
+    ];
+
+    expect(schedulePlayerOptions(matches)).toEqual(["Alice", "Bob", "Carol"]);
+
+    expect(
+      filterScheduleMatches(matches, { player: "Carol", completion: "" }),
+    ).toHaveLength(2);
+
+    expect(
+      filterScheduleMatches(matches, { player: "", completion: "pending" }),
+    ).toEqual([matches[0], matches[2]]);
+
+    expect(
+      filterScheduleMatches(matches, { player: "", completion: "completed" }),
+    ).toEqual([matches[1]]);
   });
 
   it("defines confirmation and league-only copy", () => {

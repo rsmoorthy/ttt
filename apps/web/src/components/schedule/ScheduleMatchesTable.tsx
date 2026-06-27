@@ -6,10 +6,28 @@ import { buildScheduleGrid, hasExistingSchedule } from "../../utils/schedule";
 
 interface ScheduleMatchesTableProps {
   matches: ScheduleMatch[];
+  completedMatches?: number;
+  totalMatches?: number;
 }
 
-function UnscheduledMatchesTable({ matches }: ScheduleMatchesTableProps) {
-  const summary = countMatchCompletion(matches);
+function resolveMatchSummary(
+  matches: ScheduleMatch[],
+  completedMatches?: number,
+  totalMatches?: number,
+) {
+  if (completedMatches !== undefined && totalMatches !== undefined) {
+    return { completed: completedMatches, total: totalMatches };
+  }
+
+  return countMatchCompletion(matches);
+}
+
+function UnscheduledMatchesTable({
+  matches,
+  completedMatches,
+  totalMatches,
+}: ScheduleMatchesTableProps) {
+  const summary = resolveMatchSummary(matches, completedMatches, totalMatches);
 
   return (
     <section className="space-y-3">
@@ -60,9 +78,13 @@ function UnscheduledMatchesTable({ matches }: ScheduleMatchesTableProps) {
   );
 }
 
-function ScheduledMatchesGrid({ matches }: ScheduleMatchesTableProps) {
+function ScheduledMatchesGrid({
+  matches,
+  completedMatches,
+  totalMatches,
+}: ScheduleMatchesTableProps) {
   const grid = buildScheduleGrid(matches);
-  const summary = countMatchCompletion(matches);
+  const summary = resolveMatchSummary(matches, completedMatches, totalMatches);
 
   if (!grid) {
     return <UnscheduledMatchesTable matches={matches} />;
@@ -122,10 +144,26 @@ function ScheduledMatchesGrid({ matches }: ScheduleMatchesTableProps) {
   );
 }
 
-export function ScheduleMatchesTable({ matches }: ScheduleMatchesTableProps) {
+export function ScheduleMatchesTable({
+  matches,
+  completedMatches,
+  totalMatches,
+}: ScheduleMatchesTableProps) {
   if (hasExistingSchedule(matches)) {
-    return <ScheduledMatchesGrid matches={matches} />;
+    return (
+      <ScheduledMatchesGrid
+        matches={matches}
+        completedMatches={completedMatches}
+        totalMatches={totalMatches}
+      />
+    );
   }
 
-  return <UnscheduledMatchesTable matches={matches} />;
+  return (
+    <UnscheduledMatchesTable
+      matches={matches}
+      completedMatches={completedMatches}
+      totalMatches={totalMatches}
+    />
+  );
 }

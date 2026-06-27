@@ -11,11 +11,13 @@ export interface LeaderboardMatch {
   game4: string;
   game5: string;
   walkover_win: string;
+  is_completed: boolean;
 }
 
 export interface LeaderboardEntry {
   rank: number;
   player_name: string;
+  played: number;
   wins: number;
   nrr: number;
   swlr: number;
@@ -23,6 +25,7 @@ export interface LeaderboardEntry {
 }
 
 interface PlayerStats {
+  played: number;
   wins: number;
   setsWon: number;
   setsLost: number;
@@ -162,6 +165,7 @@ export function computeLeaderboard(
 
   for (const player of players) {
     statsByPlayer.set(player, {
+      played: 0,
       wins: 0,
       setsWon: 0,
       setsLost: 0,
@@ -171,6 +175,15 @@ export function computeLeaderboard(
   }
 
   for (const match of matches) {
+    if (match.is_completed) {
+      for (const player of [match.player1, match.player2]) {
+        const stats = statsByPlayer.get(player);
+        if (stats) {
+          stats.played += 1;
+        }
+      }
+    }
+
     if (!matchHasResults(match)) {
       continue;
     }
@@ -198,6 +211,7 @@ export function computeLeaderboard(
     return {
       rank: 0,
       player_name,
+      played: stats.played,
       wins: stats.wins,
       nrr,
       swlr,

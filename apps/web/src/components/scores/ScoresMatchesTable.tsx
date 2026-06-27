@@ -304,6 +304,7 @@ export function ScoresMatchesTable({
                   {hasMinimumRole(role, "scorer") ? (
                     <Button
                       type="button"
+                      variant={match.is_completed ? "completed" : "primary"}
                       disabled={
                         savingSlno === match.slno ||
                         !canCompleteMatch(
@@ -317,7 +318,13 @@ export function ScoresMatchesTable({
                       {match.is_completed ? "Completed" : "Match Over"}
                     </Button>
                   ) : (
-                    <span className="text-slate-500">
+                    <span
+                      className={
+                        match.is_completed
+                          ? "font-semibold text-emerald-700"
+                          : "text-slate-500"
+                      }
+                    >
                       {match.is_completed ? "Completed" : "—"}
                     </span>
                   )}

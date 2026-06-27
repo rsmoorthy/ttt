@@ -53,6 +53,9 @@ export function LeaderboardTable({
                 Player
               </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                Played
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">
                 Wins
               </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
@@ -73,6 +76,7 @@ export function LeaderboardTable({
                 <td className="px-4 py-3 font-medium text-slate-900">
                   {entry.player_name}
                 </td>
+                <td className="px-4 py-3 text-slate-600">{entry.played}</td>
                 <td className="px-4 py-3 text-slate-600">{entry.wins}</td>
                 <td className="px-4 py-3 text-slate-600">
                   {formatNrr(entry.nrr)}

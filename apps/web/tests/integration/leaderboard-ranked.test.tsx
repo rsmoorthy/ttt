@@ -17,8 +17,10 @@ describe("Leaderboard rankings", () => {
     expect(dataRows[0]).toHaveTextContent("1");
     expect(dataRows[0]).toHaveTextContent("Alice");
     expect(dataRows[0]).toHaveTextContent("1");
+    expect(dataRows[0]).toHaveTextContent("1");
     expect(dataRows[1]).toHaveTextContent("2");
     expect(dataRows[1]).toHaveTextContent("Bob");
+    expect(dataRows[1]).toHaveTextContent("0");
     expect(dataRows[1]).toHaveTextContent("0");
   });
 });

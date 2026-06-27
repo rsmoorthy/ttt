@@ -1,5 +1,22 @@
-import type { ScheduleMatch } from "../types/schedule";
+import type {
+  ScheduleCompletionFilter,
+  ScheduleFilters,
+  ScheduleMatch,
+} from "../types/schedule";
 import type { StageType } from "../types/stage";
+
+export const EMPTY_SCHEDULE_FILTERS: ScheduleFilters = {
+  player: "",
+  completion: "",
+};
+
+export const SCHEDULE_COMPLETION_OPTIONS: Array<{
+  value: Exclude<ScheduleCompletionFilter, "">;
+  label: string;
+}> = [
+  { value: "pending", label: "Pending matches" },
+  { value: "completed", label: "Completed matches" },
+];
 
 export const SCHEDULE_OVERWRITE_CONFIRM =
   "This action overwrites the earlier schedule. Continue?";
@@ -20,6 +37,42 @@ export interface ScheduleGrid {
 
 export function showScheduleControls(stageType: StageType): boolean {
   return stageType === "league";
+}
+
+export function schedulePlayerOptions(matches: ScheduleMatch[]): string[] {
+  const players = new Set<string>();
+
+  for (const match of matches) {
+    players.add(match.player1);
+    players.add(match.player2);
+  }
+
+  return [...players].sort((left, right) => left.localeCompare(right));
+}
+
+export function filterScheduleMatches(
+  matches: ScheduleMatch[],
+  filters: ScheduleFilters,
+): ScheduleMatch[] {
+  return matches.filter((match) => {
+    if (
+      filters.player &&
+      match.player1 !== filters.player &&
+      match.player2 !== filters.player
+    ) {
+      return false;
+    }
+
+    if (filters.completion === "pending" && match.is_completed) {
+      return false;
+    }
+
+    if (filters.completion === "completed" && !match.is_completed) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 export function hasExistingSchedule(matches: ScheduleMatch[]): boolean {

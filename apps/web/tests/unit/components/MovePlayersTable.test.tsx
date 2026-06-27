@@ -13,6 +13,7 @@ describe("MovePlayersTable", () => {
           {
             rank: 1,
             player_name: "Alice",
+            played: 2,
             wins: 2,
             nrr: 2.1,
             swlr: 2,

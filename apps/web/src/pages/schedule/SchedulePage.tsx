@@ -7,17 +7,21 @@ import { ApiError } from "../../api/client";
 import { NoStagesMessage } from "../../components/layout/NoStagesMessage";
 import { StageTabs } from "../../components/layout/StageTabs";
 import { NoFixturesMessage } from "../../components/schedule/NoFixturesMessage";
+import { ScheduleFilters } from "../../components/schedule/ScheduleFilters";
 import { ScheduleMatchesTable } from "../../components/schedule/ScheduleMatchesTable";
 import { Button } from "../../components/ui/Button";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { hasMinimumRole } from "../../constants/navigation";
 import { useAuth } from "../../context/auth-context";
 import { useErrorBanner } from "../../context/error-context";
-import type { ScheduleState } from "../../types/schedule";
+import type { ScheduleFilters as ScheduleFiltersState, ScheduleState } from "../../types/schedule";
 import type { Stage } from "../../types/stage";
 import {
+  EMPTY_SCHEDULE_FILTERS,
+  filterScheduleMatches,
   hasExistingSchedule,
   LEAGUE_ONLY_SCHEDULE_MESSAGE,
+  schedulePlayerOptions,
   SCHEDULE_OVERWRITE_CONFIRM,
   showScheduleControls,
 } from "../../utils/schedule";
@@ -34,6 +38,7 @@ export function SchedulePage() {
   const [numSlots, setNumSlots] = useState("7");
   const [numTables, setNumTables] = useState("2");
   const [maxMatchesPerSlot, setMaxMatchesPerSlot] = useState("6");
+  const [filters, setFilters] = useState<ScheduleFiltersState>(EMPTY_SCHEDULE_FILTERS);
   const [loading, setLoading] = useState(true);
   const [scheduling, setScheduling] = useState(false);
 
@@ -74,6 +79,10 @@ export function SchedulePage() {
   useEffect(() => {
     loadPage();
   }, [loadPage]);
+
+  useEffect(() => {
+    setFilters(EMPTY_SCHEDULE_FILTERS);
+  }, [stageSlug]);
 
   async function handleSchedule() {
     if (!schedule) {
@@ -137,7 +146,17 @@ export function SchedulePage() {
         />
       ) : schedule ? (
         <>
-          <ScheduleMatchesTable matches={schedule.matches} />
+          <ScheduleFilters
+            filters={filters}
+            players={schedulePlayerOptions(schedule.matches)}
+            onChange={setFilters}
+          />
+
+          <ScheduleMatchesTable
+            matches={filterScheduleMatches(schedule.matches, filters)}
+            completedMatches={schedule.match_summary.completed_matches}
+            totalMatches={schedule.match_summary.total_matches}
+          />
 
           {canEdit && showScheduleControls(schedule.stage_type) ? (
             <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
