@@ -18,6 +18,7 @@ import type { MatchFilters, PatchMatchInput, ScoreMatch } from "../../types/scor
 import type { Stage } from "../../types/stage";
 import {
   fieldErrorKey,
+  invalidScoreAlertMessage,
   mergeMatchPatch,
   scoreFieldId,
   validateMatchScores,
@@ -301,6 +302,11 @@ export function ScoresPage() {
             invalidScoreTarget.slno,
             invalidScoreTarget.field,
             invalidScoreTarget.context,
+          )}
+          message={invalidScoreAlertMessage(
+            invalidScoreTarget.slno,
+            invalidScoreTarget.field,
+            fieldErrors,
           )}
           onDismiss={() => setInvalidScoreTarget(null)}
         />

@@ -42,4 +42,37 @@ describe("Scores validation", () => {
     });
     expect(gameInput).not.toHaveAttribute("aria-invalid", "true");
   });
+
+  it("shows a specific alert when walkover is set while game scores exist", async () => {
+    const user = userEvent.setup();
+
+    renderApp({
+      route: "/tournaments/summer-open-2026/scores/league",
+      user: mockScorer,
+      withLeagueFixtures: true,
+    });
+
+    const gameInput = await screen.findByLabelText("game1 for match 1");
+    await user.clear(gameInput);
+    await user.type(gameInput, "11-7");
+    await user.tab();
+
+    await waitFor(() => {
+      expect(screen.getByText("Saved")).toBeInTheDocument();
+    });
+
+    await user.selectOptions(
+      screen.getByLabelText("Walkover win for match 1"),
+      "Alice",
+    );
+
+    expect(
+      await screen.findByRole("alertdialog", { name: "Invalid score" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Cannot set Walkover Win, when game scores are present. Empty the scores and set Walkover Win",
+      ),
+    ).toBeInTheDocument();
+  });
 });

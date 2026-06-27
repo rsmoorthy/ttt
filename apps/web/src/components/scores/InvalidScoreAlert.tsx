@@ -3,11 +3,13 @@ import { Button } from "../ui/Button";
 
 interface InvalidScoreAlertProps {
   fieldId: string;
+  message?: string;
   onDismiss: () => void;
 }
 
 export function InvalidScoreAlert({
   fieldId,
+  message = INVALID_SCORE_MESSAGE,
   onDismiss,
 }: InvalidScoreAlertProps) {
   function handleOk() {
@@ -33,7 +35,7 @@ export function InvalidScoreAlert({
           Invalid score
         </h2>
         <p id="invalid-score-message" className="mt-2 text-sm text-slate-700">
-          {INVALID_SCORE_MESSAGE}
+          {message}
         </p>
         <div className="mt-6 flex justify-end">
           <Button type="button" onClick={handleOk}>

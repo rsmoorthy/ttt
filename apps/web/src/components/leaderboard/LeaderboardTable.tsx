@@ -1,6 +1,14 @@
 import { MatchCompletionSummary } from "../matches/MatchCompletionSummary";
+import { InfoLabel } from "../ui/InfoLabel";
 import type { LeaderboardEntry } from "../../types/leaderboard";
 import { formatNrr, formatRatio } from "../../utils/leaderboard";
+
+const NRR_HELP =
+  "Calc done as ((SWLR*100) + PWLR)/100). Higher the value, ranks higher (if wins are same)";
+const SWLR_HELP =
+  "SWLR - Calc done as (sets_won/sets_lost). If 0 sets are lost, then 99 is taken as SWLR";
+const PWLR_HELP =
+  "PWLR - Calc done as (points_won/points_lost). If 0 points are lost, then PWLR is set as 99";
 
 interface LeaderboardTableProps {
   entries: LeaderboardEntry[];
@@ -48,13 +56,13 @@ export function LeaderboardTable({
                 Wins
               </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                NRR
+                <InfoLabel label="NRR" info={NRR_HELP} />
               </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                Set W/L ratio
+                <InfoLabel label="Set W/L ratio" info={SWLR_HELP} />
               </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                Points W/L ratio
+                <InfoLabel label="Points W/L ratio" info={PWLR_HELP} />
               </th>
             </tr>
           </thead>

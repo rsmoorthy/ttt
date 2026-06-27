@@ -25,6 +25,24 @@ export const FILTER_EMPTY_OPTION = "—select—";
 
 export const INVALID_SCORE_MESSAGE = "Invalid score. Please correct it";
 
+export const WALKOVER_WITH_SCORES_MESSAGE =
+  "Cannot set Walkover Win, when game scores are present. Empty the scores and set Walkover Win";
+
+export function invalidScoreAlertMessage(
+  slno: number,
+  field: string,
+  fieldErrors: Record<string, string>,
+): string {
+  if (field === "walkover_win") {
+    const walkoverError = fieldErrors[fieldErrorKey(slno, "walkover_win")];
+    if (walkoverError === WALKOVER_WITH_SCORES_MESSAGE) {
+      return WALKOVER_WITH_SCORES_MESSAGE;
+    }
+  }
+
+  return INVALID_SCORE_MESSAGE;
+}
+
 export function matchScoreState(match: ScoreMatch): MatchScoreState {
   return {
     game1: match.game1,
@@ -124,8 +142,7 @@ export function validateMatchScores(
   const hasWalkover = state.walkover_win !== "";
 
   if (hasWalkover && hasGames) {
-    fields.walkover_win =
-      "Walkover cannot be set when game scores are present";
+    fields.walkover_win = WALKOVER_WITH_SCORES_MESSAGE;
     for (const field of GAME_FIELDS) {
       if (state[field] !== "") {
         fields[field] = "Game scores cannot be set when walkover is selected";

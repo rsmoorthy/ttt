@@ -14,6 +14,10 @@ import {
   validateMatchScores,
 } from "../../utils/scores";
 import { Button } from "../ui/Button";
+import { InfoLabel } from "../ui/InfoLabel";
+
+const WALKOVER_WIN_HELP =
+  "Set this to the Player name, to indicate a Win, when the other player did not show up";
 
 interface ScoreEditModalProps {
   match: ScoreMatch;
@@ -183,7 +187,7 @@ export function ScoreEditModal({
               htmlFor={scoreFieldId(match.slno, "walkover_win", "modal")}
               className="block text-sm font-medium text-slate-700"
             >
-              Walkover win
+              <InfoLabel label="Walkover win" info={WALKOVER_WIN_HELP} />
             </label>
             <select
               id={scoreFieldId(match.slno, "walkover_win", "modal")}

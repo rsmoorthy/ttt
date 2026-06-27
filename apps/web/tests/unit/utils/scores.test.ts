@@ -4,6 +4,7 @@ import {
   canEditMatch,
   countGamesWon,
   fieldErrorKey,
+  invalidScoreAlertMessage,
   hasDecisiveGameWins,
   hasScoreContent,
   hasValidRequiredGames,
@@ -44,7 +45,7 @@ describe("scores utils", () => {
     expect(validateScoreString("10-8")).toMatch(/At least one score must be 11/);
   });
 
-  it("rejects walkover combined with game scores", () => {
+  it("uses a specific alert message for walkover with game scores", () => {
     const errors = validateMatchScores(
       {
         game1: "11-7",
@@ -58,7 +59,20 @@ describe("scores utils", () => {
       "Bob",
     );
 
-    expect(errors?.walkover_win).toMatch(/Walkover cannot be set/);
+    expect(
+      invalidScoreAlertMessage(1, "walkover_win", {
+        "1:walkover_win":
+          "Cannot set Walkover Win, when game scores are present. Empty the scores and set Walkover Win",
+      }),
+    ).toBe(
+      "Cannot set Walkover Win, when game scores are present. Empty the scores and set Walkover Win",
+    );
+    expect(invalidScoreAlertMessage(1, "game1", {})).toBe(
+      "Invalid score. Please correct it",
+    );
+    expect(errors?.walkover_win).toMatch(
+      /Cannot set Walkover Win, when game scores are present/,
+    );
   });
 
   it("builds field error keys and error input classes", () => {

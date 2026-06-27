@@ -14,6 +14,12 @@ import {
 } from "../../utils/scores";
 import { MatchCompletionSummary } from "../matches/MatchCompletionSummary";
 import { Button } from "../ui/Button";
+import { InfoLabel } from "../ui/InfoLabel";
+
+const WALKOVER_WIN_HELP =
+  "Set this to the Player name, to indicate a Win, when the other player did not show up";
+const MATCH_OVER_HELP =
+  "Click on this button for each match, after you have entered all the scores. After clicking Match Over, you cannot edit the scores";
 
 interface ScoresMatchesTableProps {
   matches: ScoreMatch[];
@@ -185,10 +191,10 @@ export function ScoresMatchesTable({
               </th>
             ))}
             <th className="px-3 py-3 text-left font-semibold text-slate-700">
-              Walkover win
+              <InfoLabel label="Walkover win" info={WALKOVER_WIN_HELP} />
             </th>
             <th className="px-3 py-3 text-left font-semibold text-slate-700">
-              Match Over
+              <InfoLabel label="Match Over" info={MATCH_OVER_HELP} />
             </th>
           </tr>
         </thead>

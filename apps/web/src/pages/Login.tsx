@@ -20,7 +20,7 @@ export function LoginPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-sm text-slate-500">Loading…</p>
       </div>
     );
@@ -54,7 +54,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-brand-50 px-4">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-brand-700">TTT</h1>

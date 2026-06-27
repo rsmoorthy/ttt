@@ -25,7 +25,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       <header className="relative z-40 border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto max-w-6xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
