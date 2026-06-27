@@ -14,14 +14,14 @@ describe("patchMatchSchema", () => {
 });
 
 describe("listMatchesQuerySchema", () => {
-  it("parses numeric query parameters", () => {
+  it("parses match list query parameters", () => {
     const parsed = listMatchesQuerySchema.parse({
       player: "Alice",
       hour_slot: "2",
-      tbl: "1",
+      completion: "pending",
     });
     assert.equal(parsed.player, "Alice");
     assert.equal(parsed.hour_slot, 2);
-    assert.equal(parsed.tbl, 1);
+    assert.equal(parsed.completion, "pending");
   });
 });

@@ -19,8 +19,8 @@ function buildQuery(filters: MatchFilters): string {
   if (filters.hour_slot) {
     params.set("hour_slot", filters.hour_slot);
   }
-  if (filters.tbl) {
-    params.set("tbl", filters.tbl);
+  if (filters.completion) {
+    params.set("completion", filters.completion);
   }
 
   const query = params.toString();
@@ -30,7 +30,7 @@ function buildQuery(filters: MatchFilters): string {
 export function listMatches(
   tournamentSlug: string,
   stageSlug: string,
-  filters: MatchFilters = { player: "", hour_slot: "", tbl: "" },
+  filters: MatchFilters = { player: "", hour_slot: "", completion: "" },
 ): Promise<MatchesState> {
   return apiRequest<MatchesState>(
     `${matchesPath(tournamentSlug, stageSlug)}${buildQuery(filters)}`,

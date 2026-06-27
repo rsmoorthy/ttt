@@ -84,6 +84,21 @@ describe("fixtures matches repository", () => {
     assert.equal(matches[0]?.player1, "Alice");
   });
 
+  it("filters matches by completion status", () => {
+    repo.completeMatch(tournament, stage, 1);
+
+    const pending = repo.listMatches(tournament, stage, { completion: "pending" });
+    assert.equal(pending.matches.length, 1);
+    assert.equal(pending.matches[0]?.slno, 2);
+
+    const completed = repo.listMatches(tournament, stage, {
+      completion: "completed",
+    });
+    assert.equal(completed.matches.length, 1);
+    assert.equal(completed.matches[0]?.slno, 1);
+    assert.equal(completed.matches[0]?.is_completed, true);
+  });
+
   it("updates match scores", () => {
     const updated = repo.updateMatchScores(tournament, stage, 1, {
       game1: "11-7",
@@ -107,6 +122,5 @@ describe("fixtures matches repository", () => {
     const { filter_options } = repo.listMatches(tournament, stage);
     assert.deepEqual(filter_options.players, ["Alice", "Bob", "Carol", "Dave"]);
     assert.deepEqual(filter_options.hour_slots, [1, 2]);
-    assert.deepEqual(filter_options.tbls, [1, 2]);
   });
 });

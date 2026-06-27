@@ -230,16 +230,17 @@ export interface MatchResponse {
   is_completed: boolean;
 }
 
+export type MatchCompletionFilter = "pending" | "completed";
+
 export interface MatchFilters {
   player?: string;
   hour_slot?: number;
-  tbl?: number;
+  completion?: MatchCompletionFilter;
 }
 
 export interface MatchFilterOptions {
   players: string[];
   hour_slots: number[];
-  tbls: number[];
 }
 
 export function toMatchResponse(match: FixtureMatch): MatchResponse {
@@ -284,7 +285,11 @@ function matchPassesFilters(match: FixtureMatch, filters: MatchFilters): boolean
     return false;
   }
 
-  if (filters.tbl !== undefined && match.table !== filters.tbl) {
+  if (filters.completion === "pending" && match.is_completed) {
+    return false;
+  }
+
+  if (filters.completion === "completed" && !match.is_completed) {
     return false;
   }
 
@@ -294,7 +299,6 @@ function matchPassesFilters(match: FixtureMatch, filters: MatchFilters): boolean
 export function buildMatchFilterOptions(matches: FixtureMatch[]): MatchFilterOptions {
   const players = new Set<string>();
   const hourSlots = new Set<number>();
-  const tbls = new Set<number>();
 
   for (const match of matches) {
     players.add(match.player1);
@@ -302,15 +306,11 @@ export function buildMatchFilterOptions(matches: FixtureMatch[]): MatchFilterOpt
     if (match.hour_slot !== null) {
       hourSlots.add(match.hour_slot);
     }
-    if (match.table !== null) {
-      tbls.add(match.table);
-    }
   }
 
   return {
     players: [...players].sort(),
     hour_slots: [...hourSlots].sort((a, b) => a - b),
-    tbls: [...tbls].sort((a, b) => a - b),
   };
 }
 

@@ -74,7 +74,7 @@ matchesRouter.get(
         {
           player: query.player,
           hour_slot: query.hour_slot,
-          tbl: query.tbl,
+          completion: query.completion,
         },
       );
 
@@ -84,7 +84,7 @@ matchesRouter.get(
         filters: {
           player: query.player ?? null,
           hour_slot: query.hour_slot ?? null,
-          tbl: query.tbl ?? null,
+          completion: query.completion ?? null,
         },
         matches,
         filter_options,

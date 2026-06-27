@@ -27,7 +27,7 @@ export type PatchMatchInput = z.infer<typeof patchMatchSchema>;
 export const listMatchesQuerySchema = z.object({
   player: z.string().optional(),
   hour_slot: z.coerce.number().int().positive().optional(),
-  tbl: z.coerce.number().int().positive().optional(),
+  completion: z.enum(["pending", "completed"]).optional(),
 });
 
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;

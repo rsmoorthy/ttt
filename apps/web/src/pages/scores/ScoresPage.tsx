@@ -27,7 +27,7 @@ import {
 const EMPTY_FILTERS: MatchFilters = {
   player: "",
   hour_slot: "",
-  tbl: "",
+  completion: "",
 };
 
 type SaveStatus = "idle" | "saving" | "saved";
@@ -52,7 +52,6 @@ export function ScoresPage() {
   const [filterOptions, setFilterOptions] = useState({
     players: [] as string[],
     hour_slots: [] as number[],
-    tbls: [] as number[],
   });
   const [filters, setFilters] = useState<MatchFilters>(EMPTY_FILTERS);
   const [selectedMatch, setSelectedMatch] = useState<ScoreMatch | null>(null);

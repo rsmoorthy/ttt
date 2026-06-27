@@ -165,7 +165,6 @@ function compareStoredMatches(left: StoredMatchRow, right: StoredMatchRow): numb
 function buildScoreFilterOptions(matches: StoredMatchRow[]) {
   const players = new Set<string>();
   const hourSlots = new Set<number>();
-  const tbls = new Set<number>();
 
   for (const match of matches) {
     players.add(match.player1);
@@ -173,21 +172,21 @@ function buildScoreFilterOptions(matches: StoredMatchRow[]) {
     if (match.hour_slot != null) {
       hourSlots.add(match.hour_slot);
     }
-    if (match.tbl != null) {
-      tbls.add(match.tbl);
-    }
   }
 
   return {
     players: [...players].sort(),
     hour_slots: [...hourSlots].sort((left, right) => left - right),
-    tbls: [...tbls].sort((left, right) => left - right),
   };
 }
 
 function matchPassesScoreFilters(
   match: StoredMatchRow,
-  filters: { player?: string; hour_slot?: number; tbl?: number },
+  filters: {
+    player?: string;
+    hour_slot?: number;
+    completion?: "pending" | "completed";
+  },
 ): boolean {
   if (
     filters.player &&
@@ -201,7 +200,11 @@ function matchPassesScoreFilters(
     return false;
   }
 
-  if (filters.tbl !== undefined && match.tbl !== filters.tbl) {
+  if (filters.completion === "pending" && match.is_completed) {
+    return false;
+  }
+
+  if (filters.completion === "completed" && !match.is_completed) {
     return false;
   }
 
@@ -664,19 +667,22 @@ export const handlers = [
     const url = new URL(request.url);
     const player = url.searchParams.get("player") ?? undefined;
     const hourSlotRaw = url.searchParams.get("hour_slot");
-    const tblRaw = url.searchParams.get("tbl");
+    const completionRaw = url.searchParams.get("completion");
     const hour_slot =
       hourSlotRaw && hourSlotRaw !== ""
         ? Number(hourSlotRaw)
         : undefined;
-    const tbl = tblRaw && tblRaw !== "" ? Number(tblRaw) : undefined;
+    const completion =
+      completionRaw === "pending" || completionRaw === "completed"
+        ? completionRaw
+        : undefined;
 
     const stored = fixturesByStage[stageKey(tournamentSlug, stageSlug)];
     const allMatches = stored?.matches ?? [];
     const filterOptions = buildScoreFilterOptions(allMatches);
     const matches = allMatches
       .filter((match) =>
-        matchPassesScoreFilters(match, { player, hour_slot, tbl }),
+        matchPassesScoreFilters(match, { player, hour_slot, completion }),
       )
       .sort(compareStoredMatches)
       .map(toScoreMatchResponse);
@@ -687,7 +693,7 @@ export const handlers = [
       filters: {
         player: player ?? null,
         hour_slot: hour_slot ?? null,
-        tbl: tbl ?? null,
+        completion: completion ?? null,
       },
       matches,
       filter_options: filterOptions,

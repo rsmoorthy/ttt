@@ -13,16 +13,17 @@ export interface ScoreMatch {
   is_completed: boolean;
 }
 
+export type ScoreCompletionFilter = "" | "pending" | "completed";
+
 export interface MatchFilterOptions {
   players: string[];
   hour_slots: number[];
-  tbls: number[];
 }
 
 export interface MatchFilters {
   player: string;
   hour_slot: string;
-  tbl: string;
+  completion: ScoreCompletionFilter;
 }
 
 export interface MatchSummary {
@@ -36,7 +37,7 @@ export interface MatchesState {
   filters: {
     player: string | null;
     hour_slot: number | null;
-    tbl: number | null;
+    completion: "pending" | "completed" | null;
   };
   matches: ScoreMatch[];
   filter_options: MatchFilterOptions;

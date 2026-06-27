@@ -1,5 +1,6 @@
 import type { MatchFilterOptions, MatchFilters } from "../../types/scores";
 import { FILTER_EMPTY_OPTION } from "../../utils/scores";
+import { SCHEDULE_COMPLETION_OPTIONS } from "../../utils/schedule";
 
 interface ScoresFiltersProps {
   filters: MatchFilters;
@@ -63,13 +64,32 @@ export function ScoresFilters({
         options={options.hour_slots}
         onChange={(hour_slot) => onChange({ ...filters, hour_slot })}
       />
-      <FilterSelect
-        id="scores-filter-table"
-        label="Table"
-        value={filters.tbl}
-        options={options.tbls}
-        onChange={(tbl) => onChange({ ...filters, tbl })}
-      />
+      <div>
+        <label
+          htmlFor="scores-filter-completion"
+          className="block text-sm font-medium text-slate-700"
+        >
+          Match status
+        </label>
+        <select
+          id="scores-filter-completion"
+          value={filters.completion}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              completion: event.target.value as MatchFilters["completion"],
+            })
+          }
+          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        >
+          <option value="">{FILTER_EMPTY_OPTION}</option>
+          {SCHEDULE_COMPLETION_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </section>
   );
 }
